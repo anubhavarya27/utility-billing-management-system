@@ -1,40 +1,30 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import DatabaseExplorer from "./pages/DatabaseExplorer";
-import QueryStudio from "./pages/QueryStudio";
-import RecordManagement from "./pages/RecordManagement";
-import Reports from "./pages/Reports";
-import AdminPanel from "./pages/AdminPanel";
-import Profile from "./pages/Profile";
-import AppLayout from "./layouts/AppLayout";
+
+function LoginPlaceholder() {
+    return (
+        <div
+            style={{
+                minHeight: "100vh",
+                display: "grid",
+                placeItems: "center",
+                background: "#05080A",
+                color: "#EAF1F1",
+                fontFamily: "Arial, sans-serif",
+            }}
+        >
+            <h1>Login Page — Coming Next</h1>
+        </div>
+    );
+}
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Public routes */}
                 <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-
-                {/* Authenticated application */}
-                <Route element={<AppLayout />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route
-                        path="/records"
-                        element={<RecordManagement />}
-                    />
-                    <Route path="/queries" element={<QueryStudio />} />
-                    <Route
-                        path="/database"
-                        element={<DatabaseExplorer />}
-                    />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/admin" element={<AdminPanel />} />
-                </Route>
+                <Route path="/login" element={<LoginPlaceholder />} />
             </Routes>
         </BrowserRouter>
     );

@@ -1,6 +1,5 @@
 const pool = require("../config/database");
 
-
 // GET dashboard summary
 const getDashboardSummary = async (req, res) => {
     try {
@@ -44,11 +43,13 @@ const getDashboardSummary = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: "Failed to fetch dashboard summary"
+            message: "Failed to fetch dashboard summary",
+            error: process.env.NODE_ENV === "development"
+                ? error.message
+                : undefined
         });
     }
 };
-
 
 // GET bill status summary
 const getBillStatus = async (req, res) => {
@@ -70,11 +71,13 @@ const getBillStatus = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: "Failed to fetch bill status"
+            message: "Failed to fetch bill status",
+            error: process.env.NODE_ENV === "development"
+                ? error.message
+                : undefined
         });
     }
 };
-
 
 // GET payment method summary
 const getPaymentMethods = async (req, res) => {
@@ -97,11 +100,13 @@ const getPaymentMethods = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: "Failed to fetch payment methods"
+            message: "Failed to fetch payment methods",
+            error: process.env.NODE_ENV === "development"
+                ? error.message
+                : undefined
         });
     }
 };
-
 
 module.exports = {
     getDashboardSummary,

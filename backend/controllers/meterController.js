@@ -26,11 +26,17 @@ const getMeters = async (req, res) => {
     }
 };
 
-
 // GET meter by ID
 const getMeterById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Meter ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -63,7 +69,6 @@ const getMeterById = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getMeters,

@@ -30,11 +30,17 @@ const getBills = async (req, res) => {
     }
 };
 
-
 // GET bill by bill_id
 const getBillById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Bill ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -71,7 +77,6 @@ const getBillById = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getBills,

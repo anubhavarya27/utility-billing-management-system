@@ -28,11 +28,17 @@ const getCustomers = async (req, res) => {
     }
 };
 
-
 // GET customer by ID
 const getCustomerById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Customer ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -68,7 +74,6 @@ const getCustomerById = async (req, res) => {
     }
 };
 
-
 // CREATE customer
 const createCustomer = async (req, res) => {
     try {
@@ -81,10 +86,18 @@ const createCustomer = async (req, res) => {
             dob
         } = req.body;
 
-        if (!cust_id || !cust_name) {
+        // Required field validation
+        if (cust_id === undefined || cust_id === null || cust_id === "") {
             return res.status(400).json({
                 success: false,
-                message: "cust_id and cust_name are required"
+                message: "cust_id is required"
+            });
+        }
+
+        if (!cust_name || cust_name.trim() === "") {
+            return res.status(400).json({
+                success: false,
+                message: "cust_name is required"
             });
         }
 
@@ -94,11 +107,11 @@ const createCustomer = async (req, res) => {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 cust_id,
-                cust_name,
-                apartment,
-                flat_no,
-                city,
-                dob
+                cust_name.trim(),
+                apartment || null,
+                flat_no || null,
+                city || null,
+                dob || null
             ]
         );
 
@@ -116,11 +129,17 @@ const createCustomer = async (req, res) => {
     }
 };
 
-
 // UPDATE customer
 const updateCustomer = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Customer ID is required"
+            });
+        }
 
         const {
             cust_name,
@@ -129,6 +148,13 @@ const updateCustomer = async (req, res) => {
             city,
             dob
         } = req.body;
+
+        if (!cust_name || cust_name.trim() === "") {
+            return res.status(400).json({
+                success: false,
+                message: "cust_name is required"
+            });
+        }
 
         const [result] = await pool.query(
             `UPDATE CUSTOMER
@@ -140,11 +166,11 @@ const updateCustomer = async (req, res) => {
                 dob = ?
              WHERE cust_id = ?`,
             [
-                cust_name,
-                apartment,
-                flat_no,
-                city,
-                dob,
+                cust_name.trim(),
+                apartment || null,
+                flat_no || null,
+                city || null,
+                dob || null,
                 id
             ]
         );
@@ -170,11 +196,17 @@ const updateCustomer = async (req, res) => {
     }
 };
 
-
 // DELETE customer
 const deleteCustomer = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Customer ID is required"
+            });
+        }
 
         const [result] = await pool.query(
             `DELETE FROM CUSTOMER
@@ -202,7 +234,6 @@ const deleteCustomer = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getCustomers,

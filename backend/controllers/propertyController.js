@@ -25,11 +25,17 @@ const getProperties = async (req, res) => {
     }
 };
 
-
 // GET property by ID
 const getPropertyById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Property ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -61,7 +67,6 @@ const getPropertyById = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getProperties,

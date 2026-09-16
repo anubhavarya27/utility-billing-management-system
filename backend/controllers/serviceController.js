@@ -26,11 +26,17 @@ const getServices = async (req, res) => {
     }
 };
 
-
 // GET service by ID
 const getServiceById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Service ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -63,7 +69,6 @@ const getServiceById = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getServices,

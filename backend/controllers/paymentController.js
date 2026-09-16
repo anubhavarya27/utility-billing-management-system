@@ -29,11 +29,17 @@ const getPayments = async (req, res) => {
     }
 };
 
-
 // GET payment by payment_id
 const getPaymentById = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Payment ID is required"
+            });
+        }
 
         const [rows] = await pool.query(
             `SELECT
@@ -69,7 +75,6 @@ const getPaymentById = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getPayments,

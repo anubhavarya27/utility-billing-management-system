@@ -5,14 +5,16 @@ const getPayments = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT
-                bill_id,
-                payment_sequence,
-                payment_id,
-                payment_date,
-                amount,
-                payment_mode,
-                payment_due_date
-             FROM PAYMENT`
+                p.bill_id,
+                p.payment_sequence,
+                p.payment_id,
+                p.payment_date,
+                p.amount,
+                p.payment_mode,
+                ps.payment_due_date
+             FROM PAYMENT p
+             LEFT JOIN PAYMENT_SCHEDULE ps
+                ON p.payment_sequence = ps.payment_sequence`
         );
 
         res.json({
@@ -43,15 +45,17 @@ const getPaymentById = async (req, res) => {
 
         const [rows] = await pool.query(
             `SELECT
-                bill_id,
-                payment_sequence,
-                payment_id,
-                payment_date,
-                amount,
-                payment_mode,
-                payment_due_date
-             FROM PAYMENT
-             WHERE payment_id = ?`,
+                p.bill_id,
+                p.payment_sequence,
+                p.payment_id,
+                p.payment_date,
+                p.amount,
+                p.payment_mode,
+                ps.payment_due_date
+             FROM PAYMENT p
+             LEFT JOIN PAYMENT_SCHEDULE ps
+                ON p.payment_sequence = ps.payment_sequence
+             WHERE p.payment_id = ?`,
             [id]
         );
 

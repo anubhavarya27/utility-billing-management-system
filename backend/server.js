@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+// ================================
 // Routes
+// ================================
 const customerRoutes = require("./routes/customerRoutes");
 const propertyRoutes = require("./routes/propertyRoutes");
 const meterRoutes = require("./routes/meterRoutes");
@@ -10,8 +12,24 @@ const serviceRoutes = require("./routes/serviceRoutes");
 const billRoutes = require("./routes/billRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const readingRoutes = require("./routes/readingRoutes");
 
-// Error handler
+const ownershipRoutes = require("./routes/ownershipRoutes");
+const customerPhoneRoutes = require("./routes/customerPhoneRoutes");
+const customerEmailRoutes = require("./routes/customerEmailRoutes");
+const propertyMeterRoutes = require("./routes/propertyMeterRoutes");
+const meterServiceRoutes = require("./routes/meterServiceRoutes");
+const electricityServiceRoutes = require("./routes/electricityServiceRoutes");
+const waterServiceRoutes = require("./routes/waterServiceRoutes");
+const tariffRoutes = require("./routes/tariffRoutes");
+const paymentScheduleRoutes = require("./routes/paymentScheduleRoutes");
+const cardPaymentRoutes = require("./routes/cardPaymentRoutes");
+const cashPaymentRoutes = require("./routes/cashPaymentRoutes");
+const upiPaymentRoutes = require("./routes/upiPaymentRoutes");
+
+// ================================
+// Error Handler
+// ================================
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -25,7 +43,7 @@ app.use(cors());
 app.use(express.json());
 
 // ================================
-// Root route
+// Root Route
 // ================================
 app.get("/", (req, res) => {
     res.json({
@@ -34,7 +52,7 @@ app.get("/", (req, res) => {
 });
 
 // ================================
-// API Routes
+// Main API Routes
 // ================================
 app.use("/api/customers", customerRoutes);
 app.use("/api/properties", propertyRoutes);
@@ -43,6 +61,35 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/readings", readingRoutes);
+
+// ================================
+// Relationship Routes
+// ================================
+app.use("/api/ownerships", ownershipRoutes);
+app.use("/api/customer-phones", customerPhoneRoutes);
+app.use("/api/customer-emails", customerEmailRoutes);
+app.use("/api/property-meters", propertyMeterRoutes);
+app.use("/api/meter-services", meterServiceRoutes);
+
+// ================================
+// Service Specialization Routes
+// ================================
+app.use("/api/electricity-services", electricityServiceRoutes);
+app.use("/api/water-services", waterServiceRoutes);
+
+// ================================
+// Tariff & Payment Schedule Routes
+// ================================
+app.use("/api/tariffs", tariffRoutes);
+app.use("/api/payment-schedules", paymentScheduleRoutes);
+
+// ================================
+// Payment Specialization Routes
+// ================================
+app.use("/api/card-payments", cardPaymentRoutes);
+app.use("/api/cash-payments", cashPaymentRoutes);
+app.use("/api/upi-payments", upiPaymentRoutes);
 
 // ================================
 // 404 Route Handler

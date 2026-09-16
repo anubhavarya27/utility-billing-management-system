@@ -1,20 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
+import AppLayout from "./layouts/AppLayout";
 
-function LoginPlaceholder() {
+function Login() {
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                display: "grid",
-                placeItems: "center",
-                background: "#05080A",
-                color: "#EAF1F1",
-                fontFamily: "Arial, sans-serif",
-            }}
-        >
-            <h1>Login Page — Coming Next</h1>
+        <div className="placeholder-page">
+            <h1>Login</h1>
+            <p>Authentication coming next.</p>
         </div>
     );
 }
@@ -24,7 +18,18 @@ function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<LoginPlaceholder />} />
+                <Route path="/login" element={<Login />} />
+
+                <Route element={<AppLayout />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/database" element={<div>Database Explorer</div>} />
+                    <Route path="/queries" element={<div>Query Studio</div>} />
+                    <Route path="/records" element={<div>Record Management</div>} />
+                    <Route path="/reports" element={<div>Reports</div>} />
+                    <Route path="/admin" element={<div>Admin Panel</div>} />
+                </Route>
+
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );

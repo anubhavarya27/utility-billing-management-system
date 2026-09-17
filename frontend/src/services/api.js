@@ -82,3 +82,49 @@ export const getPropertyMeters = () =>
 
 export const getMeterServices = () =>
     apiRequest("/meter-services");
+// Customer contact tables
+export const getCustomerPhones = () =>
+    apiRequest("/customer-phones");
+
+export const getCustomerEmails = () =>
+    apiRequest("/customer-emails");
+
+// Payment schedule
+export const getPaymentSchedules = () =>
+    apiRequest("/payment-schedules");
+
+// Card
+export const getCards = () =>
+    apiRequest("/card-payments/cards");
+
+// Card payments
+export const getCardPayments = () =>
+    apiRequest("/card-payments");
+
+// Cash payments
+export const getCashPayments = () =>
+    apiRequest("/cash-payments");
+
+// UPI payments
+export const getUpiPayments = () =>
+    apiRequest("/upi-payments");
+export const getElectricityServices = () =>
+    apiRequest("/electricity-services");
+
+export const getWaterServices = () =>
+    apiRequest("/water-services");
+// Reports
+export const getReportOverview = () =>
+    apiRequest("/reports/overview");
+
+export const getMonthlyReport = () =>
+    apiRequest("/reports/monthly");
+
+export const getReportBillStatus = () =>
+    apiRequest("/reports/bill-status");
+
+export const getReportPaymentMethods = () =>
+    apiRequest("/reports/payment-methods");
+
+export const getTopConsumingMeters = () =>
+    apiRequest("/reports/top-meters");

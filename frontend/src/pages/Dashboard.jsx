@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
     ResponsiveContainer,
     AreaChart,
@@ -10,65 +12,206 @@ import {
     Tooltip,
 } from "recharts";
 
+import {
+    getDashboardSummary,
+    getBillStatus,
+    getPaymentMethods,
+    getConsumption,
+    getRevenue,
+    getBills,
+    getPayments,
+} from "../services/api";
+
 import "../styles/dashboard.css";
 
-const summary = {
-    total_customers: 10,
-    total_properties: 6,
-    total_meters: 10,
-    total_bills: 30,
-    total_revenue: 18505,
-};
-
-const billStatus = [
-    { bill_status: "Paid", count: 19 },
-    { bill_status: "Pending", count: 7 },
-    { bill_status: "Overdue", count: 3 },
-    { bill_status: "Partially Paid", count: 1 },
-];
-
-const paymentMethods = [
-    { payment_mode: "UPI", count: 7, total_amount: 7400 },
-    { payment_mode: "Card", count: 7, total_amount: 10980 },
-    { payment_mode: "Cash", count: 5, total_amount: 3795 },
-];
-
-const consumptionData = [
-    { month: "JAN", consumption: 2100 },
-    { month: "FEB", consumption: 2280 },
-    { month: "MAR", consumption: 2450 },
-];
-
-const revenueData = [
-    { month: "JAN", revenue: 0.63 },
-    { month: "FEB", revenue: 0.88 },
-    { month: "MAR", revenue: 0.94 },
-];
-
-const recentRecords = [
-    ["BILL-5001", "Arun Kumar", "₹1,275", "PAID"],
-    ["BILL-5002", "Arun Kumar", "₹1,275", "PAID"],
-    ["BILL-5003", "Arun Kumar", "₹1,360", "PENDING"],
-    ["PAY-9001", "Arun Kumar", "₹1,320", "CARD"],
-    ["BILL-5006", "Priya Sharma", "₹780", "OVERDUE"],
-    ["MTR-1003", "Rahul Menon", "1,750 kWh", "OK"],
-];
-
 function Dashboard() {
+    const [summary, setSummary] = useState({
+        total_customers: 0,
+        total_properties: 0,
+        total_meters: 0,
+        total_bills: 0,
+        total_revenue: 0,
+    });
+
+    const [billStatus, setBillStatus] = useState([]);
+    const [paymentMethods, setPaymentMethods] = useState([]);
+    const [consumptionData, setConsumptionData] = useState([]);
+    const [revenueData, setRevenueData] = useState([]);
+    const [recentRecords, setRecentRecords] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        async function loadDashboard() {
+            setLoading(true);
+            setError("");
+
+            const results = await Promise.allSettled([
+                getDashboardSummary(),
+                getBillStatus(),
+                getPaymentMethods(),
+                getConsumption(),
+                getRevenue(),
+                getBills(),
+                getPayments(),
+            ]);
+
+            const [
+                summaryResult,
+                billStatusResult,
+                paymentMethodsResult,
+                consumptionResult,
+                revenueResult,
+                billsResult,
+                paymentsResult,
+            ] = results;
+
+            // -----------------------------------------
+            // SUMMARY
+            // -----------------------------------------
+            if (summaryResult.status === "fulfilled") {
+                setSummary(firstRow(summaryResult.value));
+            } else {
+                setError(
+                    "Unable to load dashboard summary. Check that the backend is running."
+                );
+                console.error(
+                    "Dashboard summary error:",
+                    summaryResult.reason
+                );
+            }
+
+            // -----------------------------------------
+            // BILL STATUS
+            // -----------------------------------------
+            if (billStatusResult.status === "fulfilled") {
+                setBillStatus(normalizeRows(billStatusResult.value));
+            } else {
+                console.error(
+                    "Bill status error:",
+                    billStatusResult.reason
+                );
+            }
+
+            // -----------------------------------------
+            // PAYMENT METHODS
+            // -----------------------------------------
+            if (paymentMethodsResult.status === "fulfilled") {
+                setPaymentMethods(
+                    normalizeRows(paymentMethodsResult.value)
+                );
+            } else {
+                console.error(
+                    "Payment methods error:",
+                    paymentMethodsResult.reason
+                );
+            }
+
+            // -----------------------------------------
+            // CONSUMPTION
+            // -----------------------------------------
+            if (consumptionResult.status === "fulfilled") {
+    const data = consumptionResult.value;
+
+    const rows = Array.isArray(data)
+        ? data
+        : data?.monthly_consumption || [];
+
+    setConsumptionData(
+        rows.map((item) => ({
+            month: formatMonth(item.month),
+            consumption: Number(item.consumption || 0),
+        }))
+    );
+} else {
+    console.error(
+        "Consumption error:",
+        consumptionResult.reason
+    );
+}
+
+            // -----------------------------------------
+            // REVENUE
+            // -----------------------------------------
+            if (revenueResult.status === "fulfilled") {
+                const rows = normalizeRows(revenueResult.value);
+
+                setRevenueData(
+                    rows.map((item) => ({
+                        month: formatMonth(item.month),
+                        revenue:
+                            Number(item.revenue || 0) / 100000,
+                    }))
+                );
+            } else {
+                console.error(
+                    "Revenue error:",
+                    revenueResult.reason
+                );
+            }
+
+            // -----------------------------------------
+            // RECENT RECORDS
+            // -----------------------------------------
+            const bills =
+                billsResult.status === "fulfilled"
+                    ? normalizeRows(billsResult.value)
+                    : [];
+
+            const payments =
+                paymentsResult.status === "fulfilled"
+                    ? normalizeRows(paymentsResult.value)
+                    : [];
+
+            setRecentRecords(
+                buildRecentRecords(bills, payments)
+            );
+
+            setLoading(false);
+        }
+
+        loadDashboard();
+    }, []);
+
     const totalPayments = paymentMethods.reduce(
-        (sum, item) => sum + item.count,
+        (sum, item) =>
+            sum +
+            Number(
+                item.payment_count ??
+                item.count ??
+                0
+            ),
         0
     );
 
-    const paymentPercentage = (count) =>
-        totalPayments
+    const paymentPercentage = (item) => {
+        const count = Number(
+            item.payment_count ??
+            item.count ??
+            0
+        );
+
+        return totalPayments
             ? Math.round((count / totalPayments) * 100)
             : 0;
+    };
 
     const billTotal = billStatus.reduce(
-        (sum, item) => sum + item.count,
+        (sum, item) =>
+            sum +
+            Number(
+                item.bill_count ??
+                item.count ??
+                0
+            ),
         0
     );
+
+    const latestMonth =
+        consumptionData.length > 0
+            ? consumptionData[consumptionData.length - 1].month
+            : "—";
 
     return (
         <div className="dashboard">
@@ -76,21 +219,52 @@ function Dashboard() {
             <div className="dashboard-topbar">
                 <div className="billing-cycle">
                     <span>Billing cycle</span>
-                    <strong>March 2025</strong>
+                    <strong>
+                        {latestMonth !== "—"
+                            ? `${latestMonth} cycle`
+                            : "Loading..."}
+                    </strong>
                     <span>· Utility billing system</span>
                 </div>
 
                 <div className="topbar-status">
-                    <span className="status-pill live">LIVE</span>
-                    <span className="status-pill">CYCLE OPEN</span>
+                    <span className="status-pill live">
+                        LIVE
+                    </span>
+
+                    <span className="status-pill">
+                        CYCLE OPEN
+                    </span>
                 </div>
             </div>
 
             <div className="dashboard-content">
+
+                {/* ERROR */}
+                {error && (
+                    <div
+                        style={{
+                            marginBottom: "18px",
+                            padding: "12px 15px",
+                            border: "1px solid rgba(239, 120, 120, 0.25)",
+                            background:
+                                "rgba(239, 120, 120, 0.06)",
+                            color: "#d9a2a2",
+                            fontSize: "13px",
+                            borderRadius: "6px",
+                        }}
+                    >
+                        {error}
+                    </div>
+                )}
+
                 {/* HEADER */}
                 <div className="dashboard-heading">
                     <div>
-                        <span className="eyebrow">CONTROL CENTER</span>
+                        <span className="eyebrow">
+                            CONTROL CENTER
+                        </span>
+
                         <h1>Dashboard</h1>
                     </div>
 
@@ -103,132 +277,214 @@ function Dashboard() {
                 <section className="kpi-grid">
                     <KpiCard
                         label="CUSTOMERS"
-                        value={summary.total_customers}
+                        value={
+                            loading
+                                ? "—"
+                                : summary.total_customers
+                        }
                         detail="REGISTERED"
                     />
 
                     <KpiCard
                         label="PROPERTIES"
-                        value={summary.total_properties}
+                        value={
+                            loading
+                                ? "—"
+                                : summary.total_properties
+                        }
                         detail="REGISTERED"
                     />
 
                     <KpiCard
                         label="METERS"
-                        value={summary.total_meters}
-                        detail={`${summary.total_bills} TOTAL BILLS`}
+                        value={
+                            loading
+                                ? "—"
+                                : summary.total_meters
+                        }
+                        detail={
+                            loading
+                                ? "LOADING"
+                                : `${summary.total_bills} TOTAL BILLS`
+                        }
                     />
 
                     <KpiCard
                         label="REVENUE"
-                        value={`₹${formatMoney(summary.total_revenue)}`}
+                        value={
+                            loading
+                                ? "—"
+                                : `₹${formatMoney(
+                                      summary.total_revenue
+                                  )}`
+                        }
                         detail="PAYMENT TOTAL"
                     />
                 </section>
 
                 {/* MAIN GRID */}
                 <section className="main-grid">
+
                     {/* CONSUMPTION */}
                     <Panel
                         title="Consumption · kWh per month"
-                        meta="2025"
+                        meta={
+                            consumptionData.length
+                                ? "LIVE DATA"
+                                : "NO DATA"
+                        }
                     >
-                        <ResponsiveContainer width="100%" height={270}>
-                            <AreaChart data={consumptionData}>
-                                <defs>
-                                    <linearGradient
-                                        id="consumptionGradient"
-                                        x1="0"
-                                        y1="0"
-                                        x2="0"
-                                        y2="1"
-                                    >
-                                        <stop
-                                            offset="0%"
-                                            stopColor="#5FD0BE"
-                                            stopOpacity={0.28}
-                                        />
-                                        <stop
-                                            offset="100%"
-                                            stopColor="#5FD0BE"
-                                            stopOpacity={0}
-                                        />
-                                    </linearGradient>
-                                </defs>
+                        {consumptionData.length > 0 ? (
+                            <ResponsiveContainer
+                                width="100%"
+                                height={270}
+                            >
+                                <AreaChart
+                                    data={consumptionData}
+                                >
+                                    <defs>
+                                        <linearGradient
+                                            id="consumptionGradient"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                        >
+                                            <stop
+                                                offset="0%"
+                                                stopColor="#5FD0BE"
+                                                stopOpacity={0.28}
+                                            />
 
-                                <CartesianGrid
-                                    stroke="rgba(178,208,212,.06)"
-                                    vertical={false}
-                                />
+                                            <stop
+                                                offset="100%"
+                                                stopColor="#5FD0BE"
+                                                stopOpacity={0}
+                                            />
+                                        </linearGradient>
+                                    </defs>
 
-                                <XAxis
-                                    dataKey="month"
-                                    stroke="#59686B"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    fontSize={10}
-                                />
+                                    <CartesianGrid
+                                        stroke="rgba(178,208,212,.06)"
+                                        vertical={false}
+                                    />
 
-                                <YAxis
-                                    stroke="#59686B"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    fontSize={10}
-                                />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke="#59686B"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        fontSize={10}
+                                    />
 
-                                <Tooltip
-                                    contentStyle={{
-                                        background: "#0d1214",
-                                        border:
-                                            "1px solid rgba(178,208,212,.15)",
-                                        color: "#eaf1f1",
-                                    }}
-                                />
+                                    <YAxis
+                                        stroke="#59686B"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        fontSize={10}
+                                    />
 
-                                <Area
-                                    type="monotone"
-                                    dataKey="consumption"
-                                    stroke="#5FD0BE"
-                                    fill="url(#consumptionGradient)"
-                                    strokeWidth={2}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                                    <Tooltip
+                                        contentStyle={{
+                                            background:
+                                                "#0d1214",
+                                            border:
+                                                "1px solid rgba(178,208,212,.15)",
+                                            color: "#eaf1f1",
+                                        }}
+                                    />
+
+                                    <Area
+                                        type="monotone"
+                                        dataKey="consumption"
+                                        stroke="#5FD0BE"
+                                        fill="url(#consumptionGradient)"
+                                        strokeWidth={2}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <EmptyState
+                                text={
+                                    loading
+                                        ? "Loading consumption data..."
+                                        : "No consumption data available"
+                                }
+                            />
+                        )}
                     </Panel>
 
                     {/* RIGHT SIDE */}
                     <div className="right-stack">
+
                         {/* BILL STATUS */}
                         <Panel title="Billing status">
-                            <div className="status-bar">
-                                {billStatus.map((item) => (
-                                    <div
-                                        key={item.bill_status}
-                                        className={`status-segment ${item.bill_status
-                                            .toLowerCase()
-                                            .replaceAll(" ", "-")}`}
-                                        style={{
-                                            flex:
-                                                item.count /
-                                                    billTotal || 1,
-                                        }}
-                                    />
-                                ))}
-                            </div>
+                            {billStatus.length > 0 ? (
+                                <>
+                                    <div className="status-bar">
+                                        {billStatus.map(
+                                            (item) => {
+                                                const count =
+                                                    Number(
+                                                        item.bill_count ??
+                                                        item.count ??
+                                                        0
+                                                    );
 
-                            <div className="legend-list">
-                                {billStatus.map((item) => (
-                                    <div key={item.bill_status}>
-                                        <span>
-                                            {item.bill_status}
-                                        </span>
-
-                                        <b>
-                                            {item.count}
-                                        </b>
+                                                return (
+                                                    <div
+                                                        key={
+                                                            item.bill_status
+                                                        }
+                                                        className={`status-segment ${String(
+                                                            item.bill_status
+                                                        )
+                                                            .toLowerCase()
+                                                            .replaceAll(
+                                                                " ",
+                                                                "-"
+                                                            )}`}
+                                                        style={{
+                                                            flex:
+                                                                count /
+                                                                    billTotal ||
+                                                                1,
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                        )}
                                     </div>
-                                ))}
-                            </div>
+
+                                    <div className="legend-list">
+                                        {billStatus.map(
+                                            (item) => (
+                                                <div
+                                                    key={
+                                                        item.bill_status
+                                                    }
+                                                >
+                                                    <span>
+                                                        {
+                                                            item.bill_status
+                                                        }
+                                                    </span>
+
+                                                    <b>
+                                                        {Number(
+                                                            item.bill_count ??
+                                                                item.count ??
+                                                                0
+                                                        )}
+                                                    </b>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <EmptyState text="No billing status data available" />
+                            )}
                         </Panel>
 
                         {/* PAYMENT METHODS */}
@@ -236,35 +492,45 @@ function Dashboard() {
                             title="Payment distribution"
                             meta="MODE"
                         >
-                            <div className="distribution">
-                                {paymentMethods.map((item) => (
-                                    <div
-                                        className="distribution-row"
-                                        key={item.payment_mode}
-                                    >
-                                        <span>
-                                            {item.payment_mode}
-                                        </span>
+                            {paymentMethods.length > 0 ? (
+                                <div className="distribution">
+                                    {paymentMethods.map(
+                                        (item) => (
+                                            <div
+                                                className="distribution-row"
+                                                key={
+                                                    item.payment_mode
+                                                }
+                                            >
+                                                <span>
+                                                    {
+                                                        item.payment_mode
+                                                    }
+                                                </span>
 
-                                        <div className="distribution-track">
-                                            <i
-                                                style={{
-                                                    width: `${paymentPercentage(
-                                                        item.count
-                                                    )}%`,
-                                                }}
-                                            />
-                                        </div>
+                                                <div className="distribution-track">
+                                                    <i
+                                                        style={{
+                                                            width: `${paymentPercentage(
+                                                                item
+                                                            )}%`,
+                                                        }}
+                                                    />
+                                                </div>
 
-                                        <b>
-                                            {paymentPercentage(
-                                                item.count
-                                            )}
-                                            %
-                                        </b>
-                                    </div>
-                                ))}
-                            </div>
+                                                <b>
+                                                    {paymentPercentage(
+                                                        item
+                                                    )}
+                                                    %
+                                                </b>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            ) : (
+                                <EmptyState text="No payment data available" />
+                            )}
                         </Panel>
                     </div>
 
@@ -273,28 +539,48 @@ function Dashboard() {
                         title="Recent records"
                         meta="LAST 6"
                     >
-                        <div className="records-table">
-                            {recentRecords.map((record) => (
-                                <div
-                                    className="record-row"
-                                    key={record[0]}
-                                >
-                                    <span>{record[0]}</span>
+                        {recentRecords.length > 0 ? (
+                            <div className="records-table">
+                                {recentRecords.map(
+                                    (record) => (
+                                        <div
+                                            className="record-row"
+                                            key={
+                                                record.id
+                                            }
+                                        >
+                                            <span>
+                                                {record.id}
+                                            </span>
 
-                                    <strong>
-                                        {record[1]}
-                                    </strong>
+                                            <strong>
+                                                {record.label}
+                                            </strong>
 
-                                    <span>{record[2]}</span>
+                                            <span>
+                                                {record.value}
+                                            </span>
 
-                                    <b
-                                        className={`record-tag ${record[3].toLowerCase()}`}
-                                    >
-                                        {record[3]}
-                                    </b>
-                                </div>
-                            ))}
-                        </div>
+                                            <b
+                                                className={`record-tag ${record.status.toLowerCase()}`}
+                                            >
+                                                {
+                                                    record.status
+                                                }
+                                            </b>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                text={
+                                    loading
+                                        ? "Loading recent records..."
+                                        : "No recent records available"
+                                }
+                            />
+                        )}
                     </Panel>
 
                     {/* REVENUE */}
@@ -302,50 +588,83 @@ function Dashboard() {
                         title="Revenue · billing cycles"
                         meta="₹ LAKH"
                     >
-                        <ResponsiveContainer width="100%" height={270}>
-                            <BarChart data={revenueData}>
-                                <CartesianGrid
-                                    stroke="rgba(178,208,212,.06)"
-                                    vertical={false}
-                                />
+                        {revenueData.length > 0 ? (
+                            <ResponsiveContainer
+                                width="100%"
+                                height={270}
+                            >
+                                <BarChart
+                                    data={revenueData}
+                                >
+                                    <CartesianGrid
+                                        stroke="rgba(178,208,212,.06)"
+                                        vertical={false}
+                                    />
 
-                                <XAxis
-                                    dataKey="month"
-                                    stroke="#59686B"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    fontSize={10}
-                                />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke="#59686B"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        fontSize={10}
+                                    />
 
-                                <YAxis
-                                    stroke="#59686B"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    fontSize={10}
-                                />
+                                    <YAxis
+                                        stroke="#59686B"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        fontSize={10}
+                                    />
 
-                                <Tooltip
-                                    contentStyle={{
-                                        background: "#0d1214",
-                                        border:
-                                            "1px solid rgba(178,208,212,.15)",
-                                        color: "#eaf1f1",
-                                    }}
-                                />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background:
+                                                "#0d1214",
+                                            border:
+                                                "1px solid rgba(178,208,212,.15)",
+                                            color: "#eaf1f1",
+                                        }}
+                                        formatter={(
+                                            value
+                                        ) => [
+                                            `₹${Number(
+                                                value
+                                            ).toFixed(2)} L`,
+                                            "Revenue",
+                                        ]}
+                                    />
 
-                                <Bar
-                                    dataKey="revenue"
-                                    fill="#377B72"
-                                    radius={[3, 3, 0, 0]}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                                    <Bar
+                                        dataKey="revenue"
+                                        fill="#377B72"
+                                        radius={[
+                                            3,
+                                            3,
+                                            0,
+                                            0,
+                                        ]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <EmptyState
+                                text={
+                                    loading
+                                        ? "Loading revenue data..."
+                                        : "No revenue data available"
+                                }
+                            />
+                        )}
                     </Panel>
                 </section>
             </div>
         </div>
     );
 }
+
+/* =========================================================
+   KPI CARD
+========================================================= */
 
 function KpiCard({ label, value, detail }) {
     return (
@@ -358,6 +677,10 @@ function KpiCard({ label, value, detail }) {
         </div>
     );
 }
+
+/* =========================================================
+   PANEL
+========================================================= */
 
 function Panel({ title, meta, children }) {
     return (
@@ -373,8 +696,125 @@ function Panel({ title, meta, children }) {
     );
 }
 
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function EmptyState({ text }) {
+    return (
+        <div
+            style={{
+                height: "270px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#59686B",
+                fontSize: "13px",
+            }}
+        >
+            {text}
+        </div>
+    );
+}
+
+/* =========================================================
+   DATA HELPERS
+========================================================= */
+
+function normalizeRows(data) {
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (data && Array.isArray(data.rows)) {
+        return data.rows;
+    }
+
+    if (data && typeof data === "object") {
+        return [data];
+    }
+
+    return [];
+}
+
+function firstRow(data) {
+    return normalizeRows(data)[0] || {
+        total_customers: 0,
+        total_properties: 0,
+        total_meters: 0,
+        total_bills: 0,
+        total_revenue: 0,
+    };
+}
+
+function formatMonth(value) {
+    if (!value) return "—";
+
+    const date = new Date(`${value}-01T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value).toUpperCase();
+    }
+
+    return date
+        .toLocaleString("en-US", {
+            month: "short",
+        })
+        .toUpperCase();
+}
+
+function buildRecentRecords(bills, payments) {
+    const billRecords = bills.map((bill) => ({
+        id: `BILL-${bill.bill_id}`,
+        label: `MTR-${bill.meter_id}`,
+        value: `${Math.max(
+            0,
+            Number(bill.current_reading || 0) -
+                Number(bill.previous_reading || 0)
+        )} kWh`,
+        status: String(
+            bill.bill_status || "UNKNOWN"
+        ).toUpperCase(),
+        date:
+            bill.billing_date ||
+            bill.billing_month ||
+            "",
+    }));
+
+    const paymentRecords = payments.map(
+        (payment) => ({
+            id: `PAY-${payment.payment_id}`,
+            label:
+                payment.payment_mode ||
+                "PAYMENT",
+            value: `₹${formatMoney(
+                payment.amount
+            )}`,
+            status: String(
+                payment.payment_mode ||
+                    "PAYMENT"
+            ).toUpperCase(),
+            date:
+                payment.payment_date || "",
+        })
+    );
+
+    return [
+        ...billRecords,
+        ...paymentRecords,
+    ]
+        .sort(
+            (a, b) =>
+                new Date(b.date || 0) -
+                new Date(a.date || 0)
+        )
+        .slice(0, 6);
+}
+
 function formatMoney(value) {
-    return Number(value || 0).toLocaleString("en-IN");
+    return Number(value || 0).toLocaleString(
+        "en-IN"
+    );
 }
 
 export default Dashboard;

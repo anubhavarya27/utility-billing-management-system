@@ -235,3 +235,63 @@
         border-bottom: 1px solid rgba(178,208,212,.08);
     }
 }
+.results-error {
+    min-height: 180px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: #d9a2a2;
+}
+
+.results-error strong {
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    color: #e07a7a;
+}
+
+.results-error span {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #a98e8e;
+    white-space: pre-wrap;
+}
+
+.query-results-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.operation-result {
+    padding: 28px;
+}
+
+.operation-result-title {
+    margin-bottom: 24px;
+    color: #5fd0be;
+    font-size: 11px;
+    letter-spacing: 1.3px;
+}
+
+.operation-result-grid {
+    display: flex;
+    gap: 50px;
+}
+
+.operation-result-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.operation-result-grid span {
+    color: #59686b;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+}
+
+.operation-result-grid strong {
+    color: #eaf1f1;
+    font-size: 17px;
+    font-weight: 500;
+}

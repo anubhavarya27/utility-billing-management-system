@@ -15,9 +15,10 @@ function Login() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const from = location.state?.from?.pathname || "/dashboard";
+    const from =
+        location.state?.from?.pathname || "/dashboard";
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
         setError("");
@@ -29,19 +30,14 @@ function Login() {
 
         setLoading(true);
 
-        const result = login(username.trim(), password);
+        const result = await login(
+            username.trim(),
+            password,
+            role
+        );
 
         if (!result.success) {
             setError(result.message);
-            setLoading(false);
-            return;
-        }
-
-        // Ensure selected role matches the logged-in account.
-        if (result.user.role !== role) {
-            setError(
-                `This account is registered as ${result.user.role.toUpperCase()}.`
-            );
             setLoading(false);
             return;
         }
@@ -52,6 +48,7 @@ function Login() {
     return (
         <div className="login-page">
             <div className="login-shell">
+
                 <div className="login-brand">
                     <div className="login-logo">U</div>
 
@@ -62,6 +59,7 @@ function Login() {
                 </div>
 
                 <div className="login-card">
+
                     <div className="login-heading">
                         <span className="login-eyebrow">
                             SECURE ACCESS
@@ -76,6 +74,7 @@ function Login() {
                     </div>
 
                     <div className="role-switch">
+
                         <button
                             type="button"
                             className={
@@ -107,11 +106,14 @@ function Login() {
                             <ShieldCheck size={15} />
                             ADMIN
                         </button>
+
                     </div>
 
                     <form onSubmit={handleSubmit}>
+
                         <label>
                             Username
+
                             <input
                                 type="text"
                                 value={username}
@@ -120,8 +122,8 @@ function Login() {
                                 }
                                 placeholder={
                                     role === "admin"
-                                        ? "admin"
-                                        : "user"
+                                        ? "Administrator username"
+                                        : "Username"
                                 }
                                 autoComplete="username"
                             />
@@ -129,6 +131,7 @@ function Login() {
 
                         <label>
                             Password
+
                             <input
                                 type="password"
                                 value={password}
@@ -160,27 +163,24 @@ function Login() {
                                 </>
                             )}
                         </button>
+
                     </form>
 
-                    <div className="login-demo">
-                        <span>DEMO CREDENTIALS</span>
-
-                        {role === "user" ? (
-                            <p>
-                                user / user123
-                            </p>
-                        ) : (
-                            <p>
-                                admin / admin123
-                            </p>
-                        )}
+                    <div className="login-security-note">
+                        <span>CONTROLLED ACCESS</span>
+                        <p>
+                            Credentials are verified securely
+                            through the U/BILL backend.
+                        </p>
                     </div>
+
                 </div>
 
                 <div className="login-footer">
                     <span>U/BILL</span>
                     <span>CONTROLLED DATABASE ACCESS</span>
                 </div>
+
             </div>
         </div>
     );

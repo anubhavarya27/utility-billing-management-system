@@ -41,6 +41,19 @@ const register = async (req, res) => {
             });
         }
 
+        // Prevent normal registration from using the
+        // predefined administrator username.
+        if (
+            process.env.ADMIN_USERNAME &&
+            cleanUsername === process.env.ADMIN_USERNAME
+        ) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "This username is reserved for the administrator"
+            });
+        }
+
         const [existingUsers] = await pool.query(
             `SELECT user_id
              FROM users
@@ -82,7 +95,10 @@ const register = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error registering user:", error);
+        console.error(
+            "Error registering user:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
@@ -114,6 +130,7 @@ const login = async (req, res) => {
         }
 
         const cleanUsername = String(username).trim();
+
         const requestedRole =
             String(role).toUpperCase();
 
@@ -174,7 +191,64 @@ const login = async (req, res) => {
                 });
             }
 
+            // ----------------------------------------------------
+            // Ensure the predefined administrator also exists in
+            // the existing users table.
+            //
+            // This gives the administrator a real user_id so
+            // QUERY_REQUEST.reviewed_by can reference users.user_id.
+            // ----------------------------------------------------
+
+            let [adminUsers] = await pool.query(
+                `SELECT
+                    user_id,
+                    username,
+                    role
+                 FROM users
+                 WHERE username = ?
+                 LIMIT 1`,
+                [adminUsername]
+            );
+
+            let adminUserId;
+
+            if (adminUsers.length === 0) {
+                const [insertResult] =
+                    await pool.query(
+                        `INSERT INTO users (
+                            username,
+                            password_hash,
+                            role
+                         )
+                         VALUES (?, ?, 'ADMIN')`,
+                        [
+                            adminUsername,
+                            adminPasswordHash
+                        ]
+                    );
+
+                adminUserId =
+                    insertResult.insertId;
+            } else {
+                const adminUser =
+                    adminUsers[0];
+
+                // The predefined admin username must not
+                // belong to a normal USER account.
+                if (adminUser.role !== "ADMIN") {
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Administrator username conflicts with an existing USER account"
+                    });
+                }
+
+                adminUserId =
+                    adminUser.user_id;
+            }
+
             const token = createAuthToken(
+                adminUserId,
                 adminUsername,
                 "ADMIN"
             );
@@ -184,6 +258,7 @@ const login = async (req, res) => {
                 data: {
                     token,
                     user: {
+                        user_id: adminUserId,
                         username: adminUsername,
                         role: "ADMIN"
                     }
@@ -241,6 +316,7 @@ const login = async (req, res) => {
         }
 
         const token = createAuthToken(
+            user.user_id,
             user.username,
             "USER"
         );
@@ -257,7 +333,10 @@ const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error during login:", error);
+        console.error(
+            "Error during login:",
+            error
+        );
 
         return res.status(500).json({
             success: false,

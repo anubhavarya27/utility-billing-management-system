@@ -1,7 +1,5 @@
 const { verifyToken } = require("../utils/auth");
 
-
-// Extract Bearer token from Authorization header
 const getBearerToken = (req) => {
     const authorization = req.headers.authorization || "";
 
@@ -12,8 +10,6 @@ const getBearerToken = (req) => {
     return authorization.substring(7);
 };
 
-
-// Require a valid login token
 const requireAuth = (req, res, next) => {
     const token = getBearerToken(req);
 
@@ -27,7 +23,6 @@ const requireAuth = (req, res, next) => {
     try {
         const decoded = verifyToken(token);
 
-        // Only normal login tokens are accepted here.
         if (decoded.type !== "AUTH") {
             return res.status(401).json({
                 success: false,
@@ -36,12 +31,13 @@ const requireAuth = (req, res, next) => {
         }
 
         req.user = {
+            id: decoded.id,
             username: decoded.username,
             role: decoded.role
         };
 
         next();
-    } catch (error) {
+    } catch {
         return res.status(401).json({
             success: false,
             message: "Invalid or expired authentication token"
@@ -49,8 +45,6 @@ const requireAuth = (req, res, next) => {
     }
 };
 
-
-// Require ADMIN role
 const requireAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== "ADMIN") {
         return res.status(403).json({
@@ -62,11 +56,8 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-
-// Require the second approval token
 const requireApprovalToken = (req, res, next) => {
-    const approvalToken =
-        req.headers["x-approval-token"];
+    const approvalToken = req.headers["x-approval-token"];
 
     if (!approvalToken) {
         return res.status(403).json({
@@ -88,8 +79,6 @@ const requireApprovalToken = (req, res, next) => {
             });
         }
 
-        // Make sure the approval token belongs
-        // to the currently logged-in administrator.
         if (
             !req.user ||
             decoded.username !== req.user.username
@@ -104,15 +93,13 @@ const requireApprovalToken = (req, res, next) => {
         req.approvalVerified = true;
 
         next();
-    } catch (error) {
+    } catch {
         return res.status(403).json({
             success: false,
-            message:
-                "Approval verification has expired or is invalid"
+            message: "Approval verification has expired or is invalid"
         });
     }
 };
-
 
 module.exports = {
     requireAuth,

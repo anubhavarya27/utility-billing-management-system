@@ -15,6 +15,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const readingRoutes = require("./routes/readingRoutes");
 const requestRoutes = require("./routes/requestRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 
 const ownershipRoutes = require("./routes/ownershipRoutes");
 const customerPhoneRoutes = require("./routes/customerPhoneRoutes");
@@ -66,6 +67,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/readings", readingRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/reports", reportRoutes);
 
 // ================================
 // Relationship Routes

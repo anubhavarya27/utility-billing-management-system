@@ -16,6 +16,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const readingRoutes = require("./routes/readingRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const queryRoutes = require("./routes/queryRoutes");
 
 const ownershipRoutes = require("./routes/ownershipRoutes");
 const customerPhoneRoutes = require("./routes/customerPhoneRoutes");
@@ -68,6 +69,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/readings", readingRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/query", queryRoutes);
 
 // ================================
 // Relationship Routes

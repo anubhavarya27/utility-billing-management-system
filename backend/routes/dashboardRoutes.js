@@ -14,17 +14,44 @@ const {
 
 const router = express.Router();
 
-// Existing endpoints
+
+// ============================================================
+// EXISTING DASHBOARD ENDPOINTS
+// ============================================================
+
 router.get("/summary", getDashboardSummary);
+
 router.get("/bill-status", getBillStatus);
+
 router.get("/payment-methods", getPaymentMethods);
 
-// New dashboard endpoints
+
+// ============================================================
+// CONSUMPTION & REVENUE
+// ============================================================
+
 router.get("/consumption", getConsumption);
+
 router.get("/revenue", getRevenue);
+
+
+// ============================================================
+// NEW DASHBOARD ENDPOINTS
+// ============================================================
+
 router.get("/top-meters", getTopMeters);
+
 router.get("/customer-summary", getCustomerSummary);
-router.get("/service-distribution", getServiceDistribution);
-router.get("/meter-status", getMeterStatus);
+
+router.get(
+    "/service-distribution",
+    getServiceDistribution
+);
+
+router.get(
+    "/meter-status",
+    getMeterStatus
+);
+
 
 module.exports = router;

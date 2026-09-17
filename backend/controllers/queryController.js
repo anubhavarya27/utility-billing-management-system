@@ -517,59 +517,55 @@ const classifySql = (sql) => {
 // EXECUTION RESULT FORMATTER
 // ============================================================
 
-const formatExecutionResult = (
-    results,
-    fields
-) => {
-    const resultArray =
-        Array.isArray(results)
-            ? results
-            : [results];
+const formatExecutionResult = (results, fields) => {
+    const resultArray = Array.isArray(results)
+        ? results
+        : [];
 
-    const fieldArray =
-        Array.isArray(fields)
-            ? fields
-            : [];
+    const fieldArray = Array.isArray(fields)
+        ? fields
+        : [];
 
-    let affectedRows = 0;
-    let insertId = null;
+    // Normal SELECT result:
+    // mysql2 returns an array of row objects.
+    const isSelectRows =
+        resultArray.length === 0 ||
+        (
+            typeof resultArray[0] === "object" &&
+            !Array.isArray(resultArray[0]) &&
+            !("affectedRows" in resultArray[0])
+        );
 
+    if (isSelectRows) {
+        return {
+            rows: resultArray,
+            fields: fieldArray,
+            affectedRows: 0,
+            insertId: null,
+        };
+    }
+
+    // Multiple read statements.
     const rows = [];
     const fieldInfo = [];
 
-    resultArray.forEach(
-        (result, index) => {
-            if (Array.isArray(result)) {
-                rows.push(result);
+    resultArray.forEach((result, index) => {
+        if (Array.isArray(result)) {
+            rows.push(...result);
 
-                if (fieldArray[index]) {
-                    fieldInfo.push(
-                        fieldArray[index]
-                    );
-                }
-            } else if (result) {
-                affectedRows += Number(
-                    result.affectedRows || 0
-                );
-
-                if (
-                    insertId === null &&
-                    result.insertId !== undefined
-                ) {
-                    insertId = result.insertId;
-                }
+            if (fieldArray[index]) {
+                fieldInfo.push(...fieldArray[index]);
             }
         }
-    );
+    });
 
     return {
         rows,
         fields: fieldInfo,
-        affectedRows,
-        insertId
+        affectedRows: 0,
+        insertId: null,
     };
 };
-
 
 // ============================================================
 // EXECUTE QUERY

@@ -8,11 +8,13 @@ require("dotenv").config();
 const customerRoutes = require("./routes/customerRoutes");
 const propertyRoutes = require("./routes/propertyRoutes");
 const meterRoutes = require("./routes/meterRoutes");
+const authRoutes = require("./routes/authRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const billRoutes = require("./routes/billRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const readingRoutes = require("./routes/readingRoutes");
+const requestRoutes = require("./routes/requestRoutes");
 
 const ownershipRoutes = require("./routes/ownershipRoutes");
 const customerPhoneRoutes = require("./routes/customerPhoneRoutes");
@@ -55,6 +57,7 @@ app.get("/", (req, res) => {
 // Main API Routes
 // ================================
 app.use("/api/customers", customerRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/meters", meterRoutes);
 app.use("/api/services", serviceRoutes);
@@ -62,6 +65,7 @@ app.use("/api/bills", billRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/readings", readingRoutes);
+app.use("/api/requests", requestRoutes);
 
 // ================================
 // Relationship Routes

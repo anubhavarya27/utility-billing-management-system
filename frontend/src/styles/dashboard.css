@@ -540,3 +540,195 @@
         border-bottom: 0;
     }
 }
+/* =========================================================
+   DASHBOARD FINAL OVERRIDES
+   ========================================================= */
+
+.dashboard-heading h1 {
+    color: #eaf1f1 !important;
+}
+
+.dashboard-heading .eyebrow {
+    color: #5fd0be;
+}
+
+.dashboard-heading {
+    align-items: flex-end;
+}
+
+.dashboard-heading > div {
+    min-width: 0;
+}
+
+.dashboard-panel {
+    background: rgba(8, 14, 15, 0.72);
+    transition:
+        border-color 180ms ease,
+        background 180ms ease;
+}
+
+.dashboard-panel:hover {
+    border-right-color: rgba(95, 208, 190, 0.12);
+    border-bottom-color: rgba(95, 208, 190, 0.12);
+}
+
+.panel-heading h2 {
+    color: #eaf1f1 !important;
+}
+
+.panel-heading span {
+    color: #5f7273 !important;
+}
+
+.kpi-card strong {
+    color: #eaf1f1 !important;
+}
+
+.kpi-card > span {
+    color: #647375 !important;
+}
+
+.kpi-card > small {
+    color: #718082 !important;
+}
+
+.record-row {
+    color: #9aacab !important;
+}
+
+.record-row strong {
+    color: #d9e4e2 !important;
+}
+
+.export-btn:hover {
+    color: #5fd0be;
+    border-color: rgba(95, 208, 190, 0.28);
+    background: rgba(95, 208, 190, 0.04);
+}
+
+.status-pill.live {
+    color: #5fd0be;
+    border-color: rgba(95, 208, 190, 0.28);
+    background: rgba(95, 208, 190, 0.05);
+}
+
+/* Subtle depth without changing the layout */
+.kpi-card,
+.dashboard-panel {
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.018);
+}
+/* =========================================================
+   FINAL DASHBOARD POLISH
+   ========================================================= */
+
+.dashboard .dashboard-heading h1 {
+    color: #eaf1f1 !important;
+    font-weight: 500;
+}
+
+.dashboard .dashboard-heading .eyebrow {
+    color: #5fd0be;
+}
+
+.dashboard .panel-heading h2 {
+    color: #eaf1f1 !important;
+}
+
+.dashboard .kpi-card strong {
+    color: #eaf1f1 !important;
+}
+
+.dashboard .kpi-card {
+    transition:
+        background 180ms ease,
+        border-color 180ms ease;
+}
+
+.dashboard .kpi-card:hover {
+    background: rgba(95, 208, 190, 0.025);
+    border-color: rgba(95, 208, 190, 0.16);
+}
+
+.dashboard .dashboard-panel {
+    background: rgba(8, 14, 15, 0.72);
+}
+
+.dashboard .dashboard-panel:hover {
+    background: rgba(10, 18, 19, 0.86);
+}
+
+.dashboard-refresh {
+    width: 32px;
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 1px solid rgba(178, 208, 212, 0.1);
+    border-radius: 5px;
+
+    background: rgba(255, 255, 255, 0.02);
+
+    color: #7d8e8d;
+
+    cursor: pointer;
+}
+
+.dashboard-refresh:hover:not(:disabled) {
+    color: #5fd0be;
+    border-color: rgba(95, 208, 190, 0.3);
+    background: rgba(95, 208, 190, 0.05);
+}
+
+.dashboard-refresh:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.dashboard-spin {
+    animation:
+        dashboard-spin 0.8s linear infinite;
+}
+
+@keyframes dashboard-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.record-row {
+    min-height: 52px;
+    transition:
+        background 160ms ease;
+}
+
+.record-row:hover {
+    background: rgba(95, 208, 190, 0.025);
+}
+
+.record-row > span:first-child {
+    color: #6d7d7d;
+}
+
+.record-row strong {
+    color: #d5dfdd !important;
+}
+
+.record-tag {
+    padding: 5px 9px;
+    border-radius: 5px;
+}
+
+.record-tag.received {
+    color: #5fd0be;
+    border-color: rgba(95, 208, 190, 0.28);
+    background: rgba(95, 208, 190, 0.035);
+}

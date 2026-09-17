@@ -1,4 +1,5 @@
-import React from 'react';
+import React from "react";
+import { Link } from "react-router-dom";
 
 /**
  * U/BILL — Utility data. Under control.
@@ -10,6 +11,10 @@ import React from 'react';
  * pure CSS (respects prefers-reduced-motion). Fonts load from Google Fonts.
  */
 export default function UBillLandingPage() {
+  const goToLogin = () => {
+    window.location.assign("/login");
+  };
+
   return (
     <>
       <style>{`
@@ -527,12 +532,14 @@ footer{padding:46px 0 60px;border-top:1px solid var(--hair);margin-top:110px;pos
           <nav className="nav-links">
             <a href="#lifecycle">Lifecycle</a>
             <a href="#console">Console</a>
-            <a href="#query">Query studio</a>
-            <a href="#schema">Schema</a>
-            <a href="#records">Records</a>
+            <Link to="/queries">Query studio</Link>
+            <Link to="/database">Schema</Link>
+            <Link to="/records">Records</Link>
           </nav>
           <div className="nav-status mono"><span className="led pulse"></span> DB ONLINE</div>
-          <a className="btn sm" href="#">Open control center</a>
+          <button type="button" className="btn sm" onClick={goToLogin}>
+            Open control center
+          </button>
         </div>
       </header>
 
@@ -544,7 +551,9 @@ footer{padding:46px 0 60px;border-top:1px solid var(--hair);margin-top:110px;pos
             <h1><span>UTILITY DATA.</span><span className="l2">UNDER CONTROL.</span></h1>
             <p className="lede">One platform for customers, properties, meters, consumption, tariffs, billing, payments and the database underneath all of it.</p>
             <div className="cta-row">
-              <a className="btn primary" href="#">Open control center →</a>
+              <button type="button" className="btn primary" onClick={goToLogin}>
+                Open control center →
+              </button>
               <a className="btn" href="#console">Explore platform</a>
             </div>
             <div className="meta"><span>MYSQL</span><span>REST API</span><span>REACT</span></div>
@@ -1193,8 +1202,12 @@ footer{padding:46px 0 60px;border-top:1px solid var(--hair);margin-top:110px;pos
           <h2><span>ONE SYSTEM.</span><span className="q">EVERY UTILITY RECORD.</span></h2>
           <p className="lede" style={{maxWidth: '44ch'}}>Customers, meters, readings, tariffs, bills and payments — held in one relational core, queried and controlled from one place.</p>
           <div className="cta-row">
-            <a className="btn primary" href="#">Enter system →</a>
-            <a className="btn" href="#">Read the schema</a>
+            <button type="button" className="btn primary" onClick={goToLogin}>
+              Enter system →
+            </button>
+            <Link className="btn" to="/database">
+              Read the schema
+            </Link>
           </div>
         </div>
       </section>

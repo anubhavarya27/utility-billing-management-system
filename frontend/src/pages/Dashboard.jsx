@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import {
+    RefreshCw,
+} from "lucide-react";
 
 import {
     ResponsiveContainer,
@@ -24,6 +28,7 @@ import {
 
 import "../styles/dashboard.css";
 
+
 function Dashboard() {
     const [summary, setSummary] = useState({
         total_customers: 0,
@@ -42,11 +47,16 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        async function loadDashboard() {
-            setLoading(true);
-            setError("");
 
+    /* =========================================================
+       LOAD DASHBOARD
+       ========================================================= */
+
+    const loadDashboard = useCallback(async () => {
+        setLoading(true);
+        setError("");
+
+        try {
             const results = await Promise.allSettled([
                 getDashboardSummary(),
                 getBillStatus(),
@@ -67,26 +77,39 @@ function Dashboard() {
                 paymentsResult,
             ] = results;
 
-            // -----------------------------------------
-            // SUMMARY
-            // -----------------------------------------
+
+            /* -------------------------------------------------
+               SUMMARY
+               ------------------------------------------------- */
+
             if (summaryResult.status === "fulfilled") {
-                setSummary(firstRow(summaryResult.value));
-            } else {
-                setError(
-                    "Unable to load dashboard summary. Check that the backend is running."
+                setSummary(
+                    firstRow(
+                        summaryResult.value
+                    )
                 );
+            } else {
                 console.error(
                     "Dashboard summary error:",
                     summaryResult.reason
                 );
+
+                setError(
+                    "Unable to load dashboard summary. Check that the backend is running."
+                );
             }
 
-            // -----------------------------------------
-            // BILL STATUS
-            // -----------------------------------------
+
+            /* -------------------------------------------------
+               BILL STATUS
+               ------------------------------------------------- */
+
             if (billStatusResult.status === "fulfilled") {
-                setBillStatus(normalizeRows(billStatusResult.value));
+                setBillStatus(
+                    normalizeRows(
+                        billStatusResult.value
+                    )
+                );
             } else {
                 console.error(
                     "Bill status error:",
@@ -94,12 +117,19 @@ function Dashboard() {
                 );
             }
 
-            // -----------------------------------------
-            // PAYMENT METHODS
-            // -----------------------------------------
-            if (paymentMethodsResult.status === "fulfilled") {
+
+            /* -------------------------------------------------
+               PAYMENT METHODS
+               ------------------------------------------------- */
+
+            if (
+                paymentMethodsResult.status ===
+                "fulfilled"
+            ) {
                 setPaymentMethods(
-                    normalizeRows(paymentMethodsResult.value)
+                    normalizeRows(
+                        paymentMethodsResult.value
+                    )
                 );
             } else {
                 console.error(
@@ -108,40 +138,62 @@ function Dashboard() {
                 );
             }
 
-            // -----------------------------------------
-            // CONSUMPTION
-            // -----------------------------------------
-            if (consumptionResult.status === "fulfilled") {
-    const data = consumptionResult.value;
 
-    const rows = Array.isArray(data)
-        ? data
-        : data?.monthly_consumption || [];
+            /* -------------------------------------------------
+               CONSUMPTION
+               ------------------------------------------------- */
 
-    setConsumptionData(
-        rows.map((item) => ({
-            month: formatMonth(item.month),
-            consumption: Number(item.consumption || 0),
-        }))
-    );
-} else {
-    console.error(
-        "Consumption error:",
-        consumptionResult.reason
-    );
-}
+            if (
+                consumptionResult.status ===
+                "fulfilled"
+            ) {
+                const data =
+                    consumptionResult.value;
 
-            // -----------------------------------------
-            // REVENUE
-            // -----------------------------------------
-            if (revenueResult.status === "fulfilled") {
-                const rows = normalizeRows(revenueResult.value);
+                const rows = Array.isArray(data)
+                    ? data
+                    : data?.monthly_consumption ||
+                      [];
+
+                setConsumptionData(
+                    rows.map((item) => ({
+                        month: formatMonth(
+                            item.month
+                        ),
+                        consumption: Number(
+                            item.consumption || 0
+                        ),
+                    }))
+                );
+            } else {
+                console.error(
+                    "Consumption error:",
+                    consumptionResult.reason
+                );
+            }
+
+
+            /* -------------------------------------------------
+               REVENUE
+               ------------------------------------------------- */
+
+            if (
+                revenueResult.status ===
+                "fulfilled"
+            ) {
+                const rows =
+                    normalizeRows(
+                        revenueResult.value
+                    );
 
                 setRevenueData(
                     rows.map((item) => ({
-                        month: formatMonth(item.month),
-                        revenue:
-                            Number(item.revenue || 0) / 100000,
+                        month: formatMonth(
+                            item.month
+                        ),
+                        revenue: Number(
+                            item.revenue || 0
+                        ),
                     }))
                 );
             } else {
@@ -151,102 +203,191 @@ function Dashboard() {
                 );
             }
 
-            // -----------------------------------------
-            // RECENT RECORDS
-            // -----------------------------------------
+
+            /* -------------------------------------------------
+               RECENT ACTIVITY
+               ------------------------------------------------- */
+
             const bills =
                 billsResult.status === "fulfilled"
-                    ? normalizeRows(billsResult.value)
+                    ? normalizeRows(
+                          billsResult.value
+                      )
                     : [];
 
             const payments =
                 paymentsResult.status === "fulfilled"
-                    ? normalizeRows(paymentsResult.value)
+                    ? normalizeRows(
+                          paymentsResult.value
+                      )
                     : [];
 
             setRecentRecords(
-                buildRecentRecords(bills, payments)
+                buildRecentRecords(
+                    bills,
+                    payments
+                )
+            );
+        } catch (err) {
+            console.error(
+                "Dashboard loading error:",
+                err
             );
 
+            setError(
+                "Unable to load dashboard data."
+            );
+        } finally {
             setLoading(false);
         }
-
-        loadDashboard();
     }, []);
 
-    const totalPayments = paymentMethods.reduce(
-        (sum, item) =>
-            sum +
-            Number(
-                item.payment_count ??
-                item.count ??
-                0
-            ),
-        0
-    );
+
+    /* =========================================================
+       INITIAL LOAD
+       ========================================================= */
+
+    useEffect(() => {
+        loadDashboard();
+    }, [loadDashboard]);
+
+
+    /* =========================================================
+       PAYMENT TOTAL
+       ========================================================= */
+
+    const totalPayments =
+        paymentMethods.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.payment_count ??
+                        item.count ??
+                        0
+                ),
+            0
+        );
+
 
     const paymentPercentage = (item) => {
         const count = Number(
             item.payment_count ??
-            item.count ??
-            0
+                item.count ??
+                0
         );
 
         return totalPayments
-            ? Math.round((count / totalPayments) * 100)
+            ? Math.round(
+                  (count / totalPayments) *
+                      100
+              )
             : 0;
     };
 
-    const billTotal = billStatus.reduce(
-        (sum, item) =>
-            sum +
-            Number(
-                item.bill_count ??
-                item.count ??
-                0
-            ),
-        0
-    );
+
+    /* =========================================================
+       BILL TOTAL
+       ========================================================= */
+
+    const billTotal =
+        billStatus.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.bill_count ??
+                        item.count ??
+                        0
+                ),
+            0
+        );
+
+
+    /* =========================================================
+       LATEST PERIOD
+       ========================================================= */
 
     const latestMonth =
         consumptionData.length > 0
-            ? consumptionData[consumptionData.length - 1].month
+            ? consumptionData[
+                  consumptionData.length - 1
+              ].month
             : "—";
+
+
+    /* =========================================================
+       RENDER
+       ========================================================= */
 
     return (
         <div className="dashboard">
-            {/* TOP BAR */}
+
+            {/* =================================================
+                TOP BAR
+               ================================================= */}
+
             <div className="dashboard-topbar">
+
                 <div className="billing-cycle">
-                    <span>Billing cycle</span>
+
+                    <span>
+                        Latest billing period
+                    </span>
+
                     <strong>
                         {latestMonth !== "—"
-                            ? `${latestMonth} cycle`
+                            ? latestMonth
                             : "Loading..."}
                     </strong>
-                    <span>· Utility billing system</span>
+
+                    <span>
+                        · Live utility billing data
+                    </span>
+
                 </div>
+
 
                 <div className="topbar-status">
+
                     <span className="status-pill live">
-                        LIVE
+                        LIVE DATA
                     </span>
 
-                    <span className="status-pill">
-                        CYCLE OPEN
-                    </span>
+                    <button
+                        type="button"
+                        className="dashboard-refresh"
+                        onClick={loadDashboard}
+                        disabled={loading}
+                        title="Refresh dashboard"
+                        aria-label="Refresh dashboard"
+                    >
+                        <RefreshCw
+                            size={14}
+                            className={
+                                loading
+                                    ? "dashboard-spin"
+                                    : ""
+                            }
+                        />
+                    </button>
+
                 </div>
+
             </div>
+
 
             <div className="dashboard-content">
 
-                {/* ERROR */}
+                {/* =================================================
+                    ERROR
+                   ================================================= */}
+
                 {error && (
                     <div
                         style={{
                             marginBottom: "18px",
                             padding: "12px 15px",
-                            border: "1px solid rgba(239, 120, 120, 0.25)",
+                            border:
+                                "1px solid rgba(239, 120, 120, 0.25)",
                             background:
                                 "rgba(239, 120, 120, 0.06)",
                             color: "#d9a2a2",
@@ -258,23 +399,51 @@ function Dashboard() {
                     </div>
                 )}
 
-                {/* HEADER */}
+
+                {/* =================================================
+                    HEADER
+                   ================================================= */}
+
                 <div className="dashboard-heading">
+
                     <div>
+
                         <span className="eyebrow">
                             CONTROL CENTER
                         </span>
 
-                        <h1>Dashboard</h1>
+                        <h1>
+                            Dashboard
+                        </h1>
+
                     </div>
 
-                    <button className="export-btn">
+
+                    <button
+                        type="button"
+                        className="export-btn"
+                        onClick={() =>
+                            exportDashboard(
+                                summary,
+                                billStatus,
+                                paymentMethods,
+                                recentRecords,
+                                revenueData
+                            )
+                        }
+                    >
                         EXPORT
                     </button>
+
                 </div>
 
-                {/* KPI ROW */}
+
+                {/* =================================================
+                    KPI ROW
+                   ================================================= */}
+
                 <section className="kpi-grid">
+
                     <KpiCard
                         label="CUSTOMERS"
                         value={
@@ -320,12 +489,20 @@ function Dashboard() {
                         }
                         detail="PAYMENT TOTAL"
                     />
+
                 </section>
 
-                {/* MAIN GRID */}
+
+                {/* =================================================
+                    MAIN GRID
+                   ================================================= */}
+
                 <section className="main-grid">
 
-                    {/* CONSUMPTION */}
+                    {/* -------------------------------------------------
+                        CONSUMPTION
+                       ------------------------------------------------- */}
+
                     <Panel
                         title="Consumption · kWh per month"
                         meta={
@@ -334,15 +511,23 @@ function Dashboard() {
                                 : "NO DATA"
                         }
                     >
-                        {consumptionData.length > 0 ? (
+
+                        {consumptionData.length >
+                        0 ? (
+
                             <ResponsiveContainer
                                 width="100%"
                                 height={270}
                             >
+
                                 <AreaChart
-                                    data={consumptionData}
+                                    data={
+                                        consumptionData
+                                    }
                                 >
+
                                     <defs>
+
                                         <linearGradient
                                             id="consumptionGradient"
                                             x1="0"
@@ -350,24 +535,33 @@ function Dashboard() {
                                             x2="0"
                                             y2="1"
                                         >
+
                                             <stop
                                                 offset="0%"
                                                 stopColor="#5FD0BE"
-                                                stopOpacity={0.28}
+                                                stopOpacity={
+                                                    0.28
+                                                }
                                             />
 
                                             <stop
                                                 offset="100%"
                                                 stopColor="#5FD0BE"
-                                                stopOpacity={0}
+                                                stopOpacity={
+                                                    0
+                                                }
                                             />
+
                                         </linearGradient>
+
                                     </defs>
+
 
                                     <CartesianGrid
                                         stroke="rgba(178,208,212,.06)"
                                         vertical={false}
                                     />
+
 
                                     <XAxis
                                         dataKey="month"
@@ -377,6 +571,7 @@ function Dashboard() {
                                         fontSize={10}
                                     />
 
+
                                     <YAxis
                                         stroke="#59686B"
                                         tickLine={false}
@@ -384,15 +579,28 @@ function Dashboard() {
                                         fontSize={10}
                                     />
 
+
                                     <Tooltip
                                         contentStyle={{
                                             background:
                                                 "#0d1214",
                                             border:
                                                 "1px solid rgba(178,208,212,.15)",
-                                            color: "#eaf1f1",
+                                            color:
+                                                "#eaf1f1",
                                         }}
+                                        formatter={(
+                                            value
+                                        ) => [
+                                            `${Number(
+                                                value
+                                            ).toLocaleString(
+                                                "en-IN"
+                                            )} kWh`,
+                                            "Consumption",
+                                        ]}
                                     />
+
 
                                     <Area
                                         type="monotone"
@@ -401,9 +609,13 @@ function Dashboard() {
                                         fill="url(#consumptionGradient)"
                                         strokeWidth={2}
                                     />
+
                                 </AreaChart>
+
                             </ResponsiveContainer>
+
                         ) : (
+
                             <EmptyState
                                 text={
                                     loading
@@ -411,24 +623,44 @@ function Dashboard() {
                                         : "No consumption data available"
                                 }
                             />
+
                         )}
+
                     </Panel>
 
-                    {/* RIGHT SIDE */}
+
+                    {/* -------------------------------------------------
+                        RIGHT STACK
+                       ------------------------------------------------- */}
+
                     <div className="right-stack">
 
                         {/* BILL STATUS */}
-                        <Panel title="Billing status">
-                            {billStatus.length > 0 ? (
+
+                        <Panel
+                            title="Billing status"
+                            meta={
+                                billTotal
+                                    ? `${billTotal} BILLS`
+                                    : "NO DATA"
+                            }
+                        >
+
+                            {billStatus.length >
+                            0 ? (
+
                                 <>
+
                                     <div className="status-bar">
+
                                         {billStatus.map(
                                             (item) => {
+
                                                 const count =
                                                     Number(
                                                         item.bill_count ??
-                                                        item.count ??
-                                                        0
+                                                            item.count ??
+                                                            0
                                                     );
 
                                                 return (
@@ -446,17 +678,21 @@ function Dashboard() {
                                                             )}`}
                                                         style={{
                                                             flex:
-                                                                count /
-                                                                    billTotal ||
-                                                                1,
+                                                                billTotal
+                                                                    ? count /
+                                                                      billTotal
+                                                                    : 1,
                                                         }}
                                                     />
                                                 );
                                             }
                                         )}
+
                                     </div>
 
+
                                     <div className="legend-list">
+
                                         {billStatus.map(
                                             (item) => (
                                                 <div
@@ -464,6 +700,7 @@ function Dashboard() {
                                                         item.bill_status
                                                     }
                                                 >
+
                                                     <span>
                                                         {
                                                             item.bill_status
@@ -477,23 +714,38 @@ function Dashboard() {
                                                                 0
                                                         )}
                                                     </b>
+
                                                 </div>
                                             )
                                         )}
+
                                     </div>
+
                                 </>
+
                             ) : (
-                                <EmptyState text="No billing status data available" />
+
+                                <EmptyState
+                                    text="No billing status data available"
+                                />
+
                             )}
+
                         </Panel>
 
+
                         {/* PAYMENT METHODS */}
+
                         <Panel
                             title="Payment distribution"
                             meta="MODE"
                         >
-                            {paymentMethods.length > 0 ? (
+
+                            {paymentMethods.length >
+                            0 ? (
+
                                 <div className="distribution">
+
                                     {paymentMethods.map(
                                         (item) => (
                                             <div
@@ -502,13 +754,16 @@ function Dashboard() {
                                                     item.payment_mode
                                                 }
                                             >
+
                                                 <span>
                                                     {
                                                         item.payment_mode
                                                     }
                                                 </span>
 
+
                                                 <div className="distribution-track">
+
                                                     <i
                                                         style={{
                                                             width: `${paymentPercentage(
@@ -516,31 +771,52 @@ function Dashboard() {
                                                             )}%`,
                                                         }}
                                                     />
+
                                                 </div>
 
+
                                                 <b>
-                                                    {paymentPercentage(
-                                                        item
-                                                    )}
+                                                    {
+                                                        paymentPercentage(
+                                                            item
+                                                        )
+                                                    }
                                                     %
                                                 </b>
+
                                             </div>
                                         )
                                     )}
+
                                 </div>
+
                             ) : (
-                                <EmptyState text="No payment data available" />
+
+                                <EmptyState
+                                    text="No payment data available"
+                                />
+
                             )}
+
                         </Panel>
+
                     </div>
 
-                    {/* RECENT RECORDS */}
+
+                    {/* -------------------------------------------------
+                        RECENT ACTIVITY
+                       ------------------------------------------------- */}
+
                     <Panel
-                        title="Recent records"
-                        meta="LAST 6"
+                        title="Recent activity"
+                        meta="LIVE · LAST 6"
                     >
-                        {recentRecords.length > 0 ? (
+
+                        {recentRecords.length >
+                        0 ? (
+
                             <div className="records-table">
+
                                 {recentRecords.map(
                                     (record) => (
                                         <div
@@ -549,57 +825,90 @@ function Dashboard() {
                                                 record.id
                                             }
                                         >
+
                                             <span>
-                                                {record.id}
+                                                {
+                                                    record.id
+                                                }
                                             </span>
+
 
                                             <strong>
-                                                {record.label}
+                                                {
+                                                    record.label
+                                                }
                                             </strong>
 
+
                                             <span>
-                                                {record.value}
+                                                {
+                                                    record.value
+                                                }
                                             </span>
 
+
                                             <b
-                                                className={`record-tag ${record.status.toLowerCase()}`}
+                                                className={`record-tag ${record.status
+                                                    .toLowerCase()
+                                                    .replaceAll(
+                                                        " ",
+                                                        "-"
+                                                    )}`}
                                             >
                                                 {
                                                     record.status
                                                 }
                                             </b>
+
                                         </div>
                                     )
                                 )}
+
                             </div>
+
                         ) : (
+
                             <EmptyState
                                 text={
                                     loading
-                                        ? "Loading recent records..."
-                                        : "No recent records available"
+                                        ? "Loading recent activity..."
+                                        : "No recent activity available"
                                 }
                             />
+
                         )}
+
                     </Panel>
 
-                    {/* REVENUE */}
+
+                    {/* -------------------------------------------------
+                        REVENUE
+                       ------------------------------------------------- */}
+
                     <Panel
-                        title="Revenue · billing cycles"
-                        meta="₹ LAKH"
+                        title="Monthly revenue"
+                        meta="₹"
                     >
-                        {revenueData.length > 0 ? (
+
+                        {revenueData.length >
+                        0 ? (
+
                             <ResponsiveContainer
                                 width="100%"
                                 height={270}
                             >
+
                                 <BarChart
-                                    data={revenueData}
+                                    data={
+                                        revenueData
+                                    }
                                 >
+
                                     <CartesianGrid
                                         stroke="rgba(178,208,212,.06)"
                                         vertical={false}
                                     />
+
 
                                     <XAxis
                                         dataKey="month"
@@ -609,6 +918,7 @@ function Dashboard() {
                                         fontSize={10}
                                     />
 
+
                                     <YAxis
                                         stroke="#59686B"
                                         tickLine={false}
@@ -616,23 +926,28 @@ function Dashboard() {
                                         fontSize={10}
                                     />
 
+
                                     <Tooltip
                                         contentStyle={{
                                             background:
                                                 "#0d1214",
                                             border:
                                                 "1px solid rgba(178,208,212,.15)",
-                                            color: "#eaf1f1",
+                                            color:
+                                                "#eaf1f1",
                                         }}
                                         formatter={(
                                             value
                                         ) => [
                                             `₹${Number(
                                                 value
-                                            ).toFixed(2)} L`,
+                                            ).toLocaleString(
+                                                "en-IN"
+                                            )}`,
                                             "Revenue",
                                         ]}
                                     />
+
 
                                     <Bar
                                         dataKey="revenue"
@@ -644,9 +959,13 @@ function Dashboard() {
                                             0,
                                         ]}
                                     />
+
                                 </BarChart>
+
                             </ResponsiveContainer>
+
                         ) : (
+
                             <EmptyState
                                 text={
                                     loading
@@ -654,53 +973,89 @@ function Dashboard() {
                                         : "No revenue data available"
                                 }
                             />
+
                         )}
+
                     </Panel>
+
                 </section>
+
             </div>
+
         </div>
     );
 }
+
 
 /* =========================================================
    KPI CARD
-========================================================= */
+   ========================================================= */
 
-function KpiCard({ label, value, detail }) {
+function KpiCard({
+    label,
+    value,
+    detail,
+}) {
     return (
         <div className="kpi-card">
-            <span>{label}</span>
 
-            <strong>{value}</strong>
+            <span>
+                {label}
+            </span>
 
-            <small>{detail}</small>
+            <strong>
+                {value}
+            </strong>
+
+            <small>
+                {detail}
+            </small>
+
         </div>
     );
 }
 
+
 /* =========================================================
    PANEL
-========================================================= */
+   ========================================================= */
 
-function Panel({ title, meta, children }) {
+function Panel({
+    title,
+    meta,
+    children,
+}) {
     return (
         <section className="dashboard-panel">
-            <div className="panel-heading">
-                <h2>{title}</h2>
 
-                {meta && <span>{meta}</span>}
+            <div className="panel-heading">
+
+                <h2>
+                    {title}
+                </h2>
+
+                {meta && (
+                    <span>
+                        {meta}
+                    </span>
+                )}
+
             </div>
 
             {children}
+
         </section>
     );
 }
 
+
 /* =========================================================
    EMPTY STATE
-========================================================= */
+   ========================================================= */
 
-function EmptyState({ text }) {
+function EmptyState({
+    text,
+}) {
     return (
         <div
             style={{
@@ -717,87 +1072,145 @@ function EmptyState({ text }) {
     );
 }
 
+
 /* =========================================================
    DATA HELPERS
-========================================================= */
+   ========================================================= */
 
 function normalizeRows(data) {
     if (Array.isArray(data)) {
         return data;
     }
 
-    if (data && Array.isArray(data.rows)) {
+    if (
+        data &&
+        Array.isArray(data.rows)
+    ) {
         return data.rows;
     }
 
-    if (data && typeof data === "object") {
+    if (
+        data &&
+        typeof data === "object"
+    ) {
         return [data];
     }
 
     return [];
 }
 
+
 function firstRow(data) {
-    return normalizeRows(data)[0] || {
-        total_customers: 0,
-        total_properties: 0,
-        total_meters: 0,
-        total_bills: 0,
-        total_revenue: 0,
-    };
+    return (
+        normalizeRows(data)[0] || {
+            total_customers: 0,
+            total_properties: 0,
+            total_meters: 0,
+            total_bills: 0,
+            total_revenue: 0,
+        }
+    );
 }
 
+
 function formatMonth(value) {
-    if (!value) return "—";
+    if (!value) {
+        return "—";
+    }
 
-    const date = new Date(`${value}-01T00:00:00`);
+    const date =
+        new Date(
+            `${value}-01T00:00:00`
+        );
 
-    if (Number.isNaN(date.getTime())) {
-        return String(value).toUpperCase();
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return String(
+            value
+        ).toUpperCase();
     }
 
     return date
-        .toLocaleString("en-US", {
-            month: "short",
-        })
+        .toLocaleString(
+            "en-US",
+            {
+                month: "short",
+            }
+        )
         .toUpperCase();
 }
 
-function buildRecentRecords(bills, payments) {
-    const billRecords = bills.map((bill) => ({
-        id: `BILL-${bill.bill_id}`,
-        label: `MTR-${bill.meter_id}`,
-        value: `${Math.max(
-            0,
-            Number(bill.current_reading || 0) -
-                Number(bill.previous_reading || 0)
-        )} kWh`,
-        status: String(
-            bill.bill_status || "UNKNOWN"
-        ).toUpperCase(),
-        date:
-            bill.billing_date ||
-            bill.billing_month ||
-            "",
-    }));
 
-    const paymentRecords = payments.map(
-        (payment) => ({
-            id: `PAY-${payment.payment_id}`,
-            label:
-                payment.payment_mode ||
-                "PAYMENT",
-            value: `₹${formatMoney(
-                payment.amount
-            )}`,
-            status: String(
-                payment.payment_mode ||
-                    "PAYMENT"
-            ).toUpperCase(),
-            date:
-                payment.payment_date || "",
-        })
-    );
+/* =========================================================
+   RECENT ACTIVITY
+   ========================================================= */
+
+function buildRecentRecords(
+    bills,
+    payments
+) {
+    const billRecords =
+        bills.map(
+            (bill) => ({
+                id: `BILL-${bill.bill_id}`,
+
+                label:
+                    `MTR-${bill.meter_id}`,
+
+                value:
+                    `${Math.max(
+                        0,
+                        Number(
+                            bill.current_reading ||
+                                0
+                        ) -
+                            Number(
+                                bill.previous_reading ||
+                                    0
+                            )
+                    )} kWh`,
+
+                status:
+                    String(
+                        bill.bill_status ||
+                            "UNKNOWN"
+                    ).toUpperCase(),
+
+                date:
+                    bill.billing_date ||
+                    bill.billing_month ||
+                    "",
+            })
+        );
+
+
+    const paymentRecords =
+        payments.map(
+            (payment) => ({
+                id: `PAY-${payment.payment_id}`,
+
+                label:
+                    `PAYMENT · ${
+                        payment.payment_mode ||
+                        "UNKNOWN"
+                    }`,
+
+                value:
+                    `₹${formatMoney(
+                        payment.amount
+                    )}`,
+
+                status: "RECEIVED",
+
+                date:
+                    payment.payment_date ||
+                    "",
+            })
+        );
+
 
     return [
         ...billRecords,
@@ -805,16 +1218,220 @@ function buildRecentRecords(bills, payments) {
     ]
         .sort(
             (a, b) =>
-                new Date(b.date || 0) -
-                new Date(a.date || 0)
+                new Date(
+                    b.date || 0
+                ) -
+                new Date(
+                    a.date || 0
+                )
         )
         .slice(0, 6);
 }
 
+
+/* =========================================================
+   FORMATTERS
+   ========================================================= */
+
 function formatMoney(value) {
-    return Number(value || 0).toLocaleString(
+    return Number(
+        value || 0
+    ).toLocaleString(
         "en-IN"
     );
 }
+
+
+/* =========================================================
+   EXPORT
+   ========================================================= */
+
+function exportDashboard(
+    summary,
+    billStatus,
+    paymentMethods,
+    recentRecords,
+    revenueData
+) {
+    const rows = [
+        [
+            "U/BILL DASHBOARD"
+        ],
+
+        [],
+
+        [
+            "Metric",
+            "Value"
+        ],
+
+        [
+            "Customers",
+            summary.total_customers
+        ],
+
+        [
+            "Properties",
+            summary.total_properties
+        ],
+
+        [
+            "Meters",
+            summary.total_meters
+        ],
+
+        [
+            "Bills",
+            summary.total_bills
+        ],
+
+        [
+            "Revenue",
+            summary.total_revenue
+        ],
+
+        [],
+
+        [
+            "Recent Activity"
+        ],
+
+        [
+            "ID",
+            "Label",
+            "Value",
+            "Status"
+        ],
+
+        ...recentRecords.map(
+            (record) => [
+                record.id,
+                record.label,
+                record.value,
+                record.status,
+            ]
+        ),
+
+        [],
+
+        [
+            "Monthly Revenue"
+        ],
+
+        [
+            "Month",
+            "Revenue"
+        ],
+
+        ...revenueData.map(
+            (item) => [
+                item.month,
+                item.revenue,
+            ]
+        ),
+
+        [],
+
+        [
+            "Payment Methods"
+        ],
+
+        [
+            "Method",
+            "Count"
+        ],
+
+        ...paymentMethods.map(
+            (item) => [
+                item.payment_mode,
+                item.payment_count ??
+                    item.count ??
+                    0,
+            ]
+        ),
+
+        [],
+
+        [
+            "Billing Status"
+        ],
+
+        [
+            "Status",
+            "Count"
+        ],
+
+        ...billStatus.map(
+            (item) => [
+                item.bill_status,
+                item.bill_count ??
+                    item.count ??
+                    0,
+            ]
+        ),
+    ];
+
+
+    const csv =
+        rows
+            .map(
+                (row) =>
+                    row
+                        .map(
+                            (cell) =>
+                                `"${String(
+                                    cell ??
+                                        ""
+                                ).replace(
+                                    /"/g,
+                                    '""'
+                                )}"`
+                        )
+                        .join(",")
+            )
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;",
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+    link.href = url;
+
+    link.download =
+        `ubill-dashboard-${new Date()
+            .toISOString()
+            .slice(0, 10)}.csv`;
+
+    document.body.appendChild(
+        link
+    );
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(
+        url
+    );
+}
+
 
 export default Dashboard;

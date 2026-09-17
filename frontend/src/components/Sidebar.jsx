@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
     BarChart3,
     ClipboardList,
@@ -13,8 +15,17 @@ import {
     Receipt,
     CreditCard,
 } from "lucide-react";
+
 import { NavLink } from "react-router-dom";
-import { isAdmin } from "../services/auth";
+
+import {
+    isAdmin,
+} from "../services/auth";
+
+import {
+    getQueryRequests,
+} from "../services/api";
+
 
 const mainNav = [
     {
@@ -44,89 +55,269 @@ const mainNav = [
     },
 ];
 
+
 const operationsNav = [
-    { label: "Customer 360", icon: Users },
-    { label: "Property Portfolio", icon: Building2 },
-    { label: "Meter Monitor", icon: Gauge },
-    { label: "Tariff Lab", icon: FileText },
-    { label: "Billing Center", icon: Receipt },
-    { label: "Payment Hub", icon: CreditCard },
+    {
+        label: "Customer 360",
+        icon: Users,
+    },
+    {
+        label: "Property Portfolio",
+        icon: Building2,
+    },
+    {
+        label: "Meter Monitor",
+        icon: Gauge,
+    },
+    {
+        label: "Tariff Lab",
+        icon: FileText,
+    },
+    {
+        label: "Billing Center",
+        icon: Receipt,
+    },
+    {
+        label: "Payment Hub",
+        icon: CreditCard,
+    },
 ];
+
 
 function Sidebar() {
     const admin = isAdmin();
 
+    const [pendingCount, setPendingCount] =
+        useState(0);
+
+    /* =====================================================
+       LOAD PENDING APPROVAL COUNT
+       ===================================================== */
+
+    useEffect(() => {
+        if (!admin) {
+            setPendingCount(0);
+            return;
+        }
+
+        let mounted = true;
+
+        async function loadPendingCount() {
+            try {
+                const data =
+                    await getQueryRequests();
+
+                if (!mounted) {
+                    return;
+                }
+
+                const requests =
+                    Array.isArray(data)
+                        ? data
+                        : [];
+
+                const count =
+                    requests.filter(
+                        (request) =>
+                            String(
+                                request.status ||
+                                    ""
+                            ).toUpperCase() ===
+                            "PENDING"
+                    ).length;
+
+                setPendingCount(count);
+            } catch (error) {
+                console.error(
+                    "Failed to load approval count:",
+                    error
+                );
+            }
+        }
+
+        loadPendingCount();
+
+        /*
+         * Keep the badge synchronized with the
+         * approval queue.
+         */
+        const interval =
+            setInterval(
+                loadPendingCount,
+                10000
+            );
+
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, [admin]);
+
+
     return (
         <aside className="sidebar">
+
+            {/* =================================================
+                BRAND
+               ================================================= */}
+
             <div className="sidebar-brand">
+
                 <div className="sidebar-logo">
-                    <Gauge size={21} strokeWidth={1.8} />
+                    <Gauge
+                        size={21}
+                        strokeWidth={1.8}
+                    />
                 </div>
 
                 <div>
-                    <strong>U/BILL</strong>
+
+                    <strong>
+                        U/BILL
+                    </strong>
+
                     <span>
-                        {admin ? "ADMIN CONSOLE" : "UTILITY SYSTEM"}
+                        {admin
+                            ? "ADMIN CONSOLE"
+                            : "UTILITY SYSTEM"}
                     </span>
+
                 </div>
+
             </div>
+
+
+            {/* =================================================
+                NAVIGATION
+               ================================================= */}
 
             <nav className="sidebar-nav">
-                {/* OVERVIEW */}
-                <div className="nav-group">
-                    <span className="nav-label">OVERVIEW</span>
 
-                    {mainNav.map(({ label, path, icon: Icon }) => (
-                        <NavLink
-                            key={path}
-                            to={path}
-                            className={({ isActive }) =>
-                                `side-link ${isActive ? "active" : ""}`
-                            }
-                        >
-                            <Icon size={15} />
-                            {label}
-                        </NavLink>
-                    ))}
+                {/* OVERVIEW */}
+
+                <div className="nav-group">
+
+                    <span className="nav-label">
+                        OVERVIEW
+                    </span>
+
+                    {mainNav.map(
+                        ({
+                            label,
+                            path,
+                            icon: Icon,
+                        }) => (
+                            <NavLink
+                                key={path}
+                                to={path}
+                                className={({
+                                    isActive,
+                                }) =>
+                                    `side-link ${
+                                        isActive
+                                            ? "active"
+                                            : ""
+                                    }`
+                                }
+                            >
+
+                                <Icon size={15} />
+
+                                {label}
+
+                            </NavLink>
+                        )
+                    )}
+
                 </div>
+
 
                 {/* OPERATIONS */}
-                <div className="nav-group">
-                    <span className="nav-label">OPERATIONS</span>
 
-                    {operationsNav.map(({ label, icon: Icon }) => (
-                        <div className="side-link" key={label}>
-                            <Icon size={15} />
-                            {label}
-                        </div>
-                    ))}
+                <div className="nav-group">
+
+                    <span className="nav-label">
+                        OPERATIONS
+                    </span>
+
+                    {operationsNav.map(
+                        ({
+                            label,
+                            icon: Icon,
+                        }) => (
+                            <div
+                                className="side-link"
+                                key={label}
+                            >
+
+                                <Icon size={15} />
+
+                                {label}
+
+                            </div>
+                        )
+                    )}
+
                 </div>
 
+
                 {/* ADMIN */}
+
                 {admin && (
                     <div className="nav-group">
+
                         <NavLink
                             to="/admin"
-                            className={({ isActive }) =>
-                                `side-link ${isActive ? "active" : ""}`
+                            className={({
+                                isActive,
+                            }) =>
+                                `side-link ${
+                                    isActive
+                                        ? "active"
+                                        : ""
+                                }`
                             }
                         >
-                            <ShieldCheck size={15} />
+
+                            <ShieldCheck
+                                size={15}
+                            />
+
                             Approvals
-                            <span className="approval-count">17</span>
+
+                            {pendingCount > 0 && (
+                                <span className="approval-count">
+                                    {pendingCount}
+                                </span>
+                            )}
+
                         </NavLink>
+
                     </div>
                 )}
+
             </nav>
 
+
+            {/* =================================================
+                FOOTER
+               ================================================= */}
+
             <div className="sidebar-footer">
+
                 <Settings size={14} />
+
                 <span>
-                    {admin ? "ADMIN · U/BILL" : "USER · U/BILL"}
+                    {admin
+                        ? "ADMIN · U/BILL"
+                        : "USER · U/BILL"}
                 </span>
+
             </div>
+
         </aside>
     );
 }
+
 
 export default Sidebar;

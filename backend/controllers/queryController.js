@@ -45,7 +45,6 @@ const stripSqlComments = (sql) => {
         const char = sql[i];
         const next = sql[i + 1];
 
-        // Single-quoted string
         if (inSingleQuote) {
             result += char;
 
@@ -63,7 +62,6 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // Double-quoted string
         if (inDoubleQuote) {
             result += char;
 
@@ -81,7 +79,6 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // Backtick identifier
         if (inBacktick) {
             result += char;
 
@@ -93,7 +90,6 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // Start single quote
         if (char === "'") {
             inSingleQuote = true;
             result += char;
@@ -101,7 +97,6 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // Start double quote
         if (char === '"') {
             inDoubleQuote = true;
             result += char;
@@ -109,7 +104,6 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // Start backtick
         if (char === "`") {
             inBacktick = true;
             result += char;
@@ -117,12 +111,15 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // /* block comment */
+        // Block comment
         if (char === "/" && next === "*") {
             i += 2;
 
             while (i < sql.length) {
-                if (sql[i] === "*" && sql[i + 1] === "/") {
+                if (
+                    sql[i] === "*" &&
+                    sql[i + 1] === "/"
+                ) {
                     i += 2;
                     break;
                 }
@@ -134,12 +131,14 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // -- comment
+        // MySQL -- comment
         if (
             char === "-" &&
             next === "-" &&
-            (i + 2 >= sql.length ||
-                /\s/.test(sql[i + 2]))
+            (
+                i + 2 >= sql.length ||
+                /\s/.test(sql[i + 2])
+            )
         ) {
             i += 2;
 
@@ -154,7 +153,7 @@ const stripSqlComments = (sql) => {
             continue;
         }
 
-        // # comment
+        // MySQL # comment
         if (char === "#") {
             i++;
 
@@ -177,8 +176,8 @@ const stripSqlComments = (sql) => {
 };
 
 
-// Split multiple SQL statements on semicolons,
-// but do not split semicolons inside strings.
+// Split multiple SQL statements while preserving
+// semicolons inside quoted strings.
 const splitSqlStatements = (sql) => {
     const statements = [];
 
@@ -356,10 +355,13 @@ const getSqlTokens = (sql) => {
 };
 
 
-// Determine the main SQL command.
-// Handles WITH ... SELECT and WITH ... INSERT/UPDATE/DELETE.
+// Get the main keyword of a statement.
+// Handles ordinary statements and WITH queries.
 const getMainKeyword = (sql) => {
-    const tokens = getSqlTokens(sql);
+    const cleaned =
+        stripSqlComments(sql).trim();
+
+    const tokens = getSqlTokens(cleaned);
 
     if (tokens.length === 0) {
         return null;
@@ -369,27 +371,13 @@ const getMainKeyword = (sql) => {
         return tokens[0];
     }
 
-    let depth = 0;
-    let seenWith = false;
-
-    for (const token of tokens) {
-        if (token === "WITH" && !seenWith) {
-            seenWith = true;
-            continue;
-        }
-
-        // Parentheses are not included by getSqlTokens,
-        // so use a simpler fallback for WITH queries below.
-    }
-
-    // For WITH queries, locate the first main statement keyword
-    // after the CTE definitions.
-    const normalized = sql
+    const normalized = cleaned
         .replace(/\s+/g, " ")
         .trim()
         .toUpperCase();
 
-    let parentheses = 0;
+    let depth = 0;
+
     let inSingleQuote = false;
     let inDoubleQuote = false;
     let inBacktick = false;
@@ -398,16 +386,24 @@ const getMainKeyword = (sql) => {
         const char = normalized[i];
 
         if (inSingleQuote) {
-            if (char === "'" && normalized[i - 1] !== "\\") {
+            if (
+                char === "'" &&
+                normalized[i - 1] !== "\\"
+            ) {
                 inSingleQuote = false;
             }
+
             continue;
         }
 
         if (inDoubleQuote) {
-            if (char === '"' && normalized[i - 1] !== "\\") {
+            if (
+                char === '"' &&
+                normalized[i - 1] !== "\\"
+            ) {
                 inDoubleQuote = false;
             }
+
             continue;
         }
 
@@ -415,6 +411,7 @@ const getMainKeyword = (sql) => {
             if (char === "`") {
                 inBacktick = false;
             }
+
             continue;
         }
 
@@ -434,17 +431,18 @@ const getMainKeyword = (sql) => {
         }
 
         if (char === "(") {
-            parentheses++;
+            depth++;
             continue;
         }
 
         if (char === ")") {
-            parentheses--;
+            depth--;
             continue;
         }
 
-        if (parentheses === 0) {
-            const remaining = normalized.substring(i);
+        if (depth === 0) {
+            const remaining =
+                normalized.substring(i);
 
             const match = remaining.match(
                 /^(SELECT|INSERT|UPDATE|DELETE|REPLACE|MERGE|CREATE|ALTER|DROP|TRUNCATE|RENAME|GRANT|REVOKE|CALL|LOAD|IMPORT)\b/
@@ -462,13 +460,15 @@ const getMainKeyword = (sql) => {
 
 // Classify one statement.
 const classifyStatement = (statement) => {
-    const cleaned = stripSqlComments(statement).trim();
+    const cleaned =
+        stripSqlComments(statement).trim();
 
     if (!cleaned) {
         return "READ";
     }
 
-    const keyword = getMainKeyword(cleaned);
+    const keyword =
+        getMainKeyword(cleaned);
 
     if (WRITE_KEYWORDS.has(keyword)) {
         return "WRITE";
@@ -478,13 +478,15 @@ const classifyStatement = (statement) => {
         return "READ";
     }
 
+    // Unknown statements are treated as WRITE for safety.
     return "WRITE";
 };
 
 
-// Classify the entire submission.
+// Classify the complete SQL submission.
 const classifySql = (sql) => {
-    const statements = splitSqlStatements(sql);
+    const statements =
+        splitSqlStatements(sql);
 
     if (statements.length === 0) {
         return {
@@ -493,57 +495,72 @@ const classifySql = (sql) => {
         };
     }
 
-    const classifications = statements.map(
-        classifyStatement
-    );
+    const classifications =
+        statements.map(
+            classifyStatement
+        );
 
-    const hasWrite = classifications.includes("WRITE");
+    const hasWrite =
+        classifications.includes("WRITE");
 
     return {
-        queryType: hasWrite ? "WRITE" : "SELECT",
+        queryType:
+            hasWrite
+                ? "WRITE"
+                : "SELECT",
         statements
     };
 };
 
 
 // ============================================================
-// FORMAT EXECUTION RESULT
+// EXECUTION RESULT FORMATTER
 // ============================================================
 
-const formatExecutionResult = (results, fields) => {
-    const resultArray = Array.isArray(results)
-        ? results
-        : [results];
+const formatExecutionResult = (
+    results,
+    fields
+) => {
+    const resultArray =
+        Array.isArray(results)
+            ? results
+            : [results];
 
-    const fieldArray = Array.isArray(fields)
-        ? fields
-        : [];
+    const fieldArray =
+        Array.isArray(fields)
+            ? fields
+            : [];
 
     let affectedRows = 0;
     let insertId = null;
+
     const rows = [];
     const fieldInfo = [];
 
-    resultArray.forEach((result, index) => {
-        if (Array.isArray(result)) {
-            rows.push(result);
+    resultArray.forEach(
+        (result, index) => {
+            if (Array.isArray(result)) {
+                rows.push(result);
 
-            if (fieldArray[index]) {
-                fieldInfo.push(fieldArray[index]);
-            }
-        } else if (result) {
-            affectedRows += Number(
-                result.affectedRows || 0
-            );
+                if (fieldArray[index]) {
+                    fieldInfo.push(
+                        fieldArray[index]
+                    );
+                }
+            } else if (result) {
+                affectedRows += Number(
+                    result.affectedRows || 0
+                );
 
-            if (
-                insertId === null &&
-                result.insertId !== undefined
-            ) {
-                insertId = result.insertId;
+                if (
+                    insertId === null &&
+                    result.insertId !== undefined
+                ) {
+                    insertId = result.insertId;
+                }
             }
         }
-    });
+    );
 
     return {
         rows,
@@ -555,11 +572,14 @@ const formatExecutionResult = (results, fields) => {
 
 
 // ============================================================
-// EXECUTE READ-ONLY QUERY
+// EXECUTE QUERY
 // ============================================================
 
 // POST /api/query
-const executeQuery = async (req, res) => {
+const executeQuery = async (
+    req,
+    res
+) => {
     try {
         const { query } = req.body;
 
@@ -569,49 +589,66 @@ const executeQuery = async (req, res) => {
         ) {
             return res.status(400).json({
                 success: false,
-                message: "SQL query is required"
+                message:
+                    "SQL query is required"
             });
         }
 
-        const classification = classifySql(query);
+        const classification =
+            classifySql(query);
 
-        // --------------------------------------------------------
+        // ====================================================
         // WRITE QUERY
-        // --------------------------------------------------------
+        // ====================================================
 
-        if (classification.queryType === "WRITE") {
-            const [result] = await pool.query(
-                `INSERT INTO QUERY_REQUEST (
-                    submitted_by,
-                    sql_query,
-                    query_type,
-                    status
-                )
-                VALUES (?, ?, 'WRITE', 'PENDING')`,
-                [
-                    req.user.id,
-                    query.trim()
-                ]
-            );
+        if (
+            classification.queryType ===
+            "WRITE"
+        ) {
+            const [result] =
+                await pool.query(
+                    `
+                    INSERT INTO QUERY_REQUEST (
+                        submitted_by,
+                        sql_query,
+                        query_type,
+                        status
+                    )
+                    VALUES (
+                        ?,
+                        ?,
+                        'WRITE',
+                        'PENDING'
+                    )
+                    `,
+                    [
+                        req.user.id,
+                        query.trim()
+                    ]
+                );
 
             return res.status(202).json({
                 success: true,
                 data: {
-                    mode: "PENDING_APPROVAL",
-                    requestId: result.insertId,
-                    queryType: "WRITE",
-                    status: "PENDING"
+                    mode:
+                        "PENDING_APPROVAL",
+                    requestId:
+                        result.insertId,
+                    queryType:
+                        "WRITE",
+                    status:
+                        "PENDING"
                 }
             });
         }
 
-        // --------------------------------------------------------
-        // READ-ONLY QUERY
-        // --------------------------------------------------------
 
-        const [result, fields] = await pool.query(
-            query
-        );
+        // ====================================================
+        // READ-ONLY QUERY
+        // ====================================================
+
+        const [result, fields] =
+            await pool.query(query);
 
         const formatted =
             formatExecutionResult(
@@ -644,7 +681,8 @@ const executeQuery = async (req, res) => {
                 error.sqlMessage ||
                 error.message ||
                 "Query execution failed",
-            code: error.code || null
+            code:
+                error.code || null
         });
     }
 };
@@ -655,33 +693,40 @@ const executeQuery = async (req, res) => {
 // ============================================================
 
 // GET /api/query/requests
-const getQueryRequests = async (req, res) => {
+const getQueryRequests = async (
+    req,
+    res
+) => {
     try {
         let sql = `
             SELECT
                 qr.request_id,
                 qr.submitted_by,
-                submitter.username AS submitted_by_name,
+                submitter.username
+                    AS submitted_by_name,
                 qr.sql_query,
                 qr.query_type,
                 qr.status,
                 qr.submitted_at,
                 qr.reviewed_by,
-                reviewer.username AS reviewed_by_name,
+                reviewer.username
+                    AS reviewed_by_name,
                 qr.reviewed_at,
                 qr.rejection_reason,
                 qr.execution_result
             FROM QUERY_REQUEST qr
             INNER JOIN users submitter
-                ON qr.submitted_by = submitter.user_id
+                ON qr.submitted_by =
+                   submitter.user_id
             LEFT JOIN users reviewer
-                ON qr.reviewed_by = reviewer.user_id
+                ON qr.reviewed_by =
+                   reviewer.user_id
         `;
 
         const params = [];
 
-        // USERs can see only their own requests.
-        // ADMINs can see all requests.
+        // Normal users see only their
+        // own requests.
         if (req.user.role !== "ADMIN") {
             sql += `
                 WHERE qr.submitted_by = ?
@@ -694,10 +739,11 @@ const getQueryRequests = async (req, res) => {
             ORDER BY qr.submitted_at DESC
         `;
 
-        const [rows] = await pool.query(
-            sql,
-            params
-        );
+        const [rows] =
+            await pool.query(
+                sql,
+                params
+            );
 
         return res.json({
             success: true,
@@ -720,88 +766,96 @@ const getQueryRequests = async (req, res) => {
 
 
 // ============================================================
-// GET ONE QUERY REQUEST
+// GET SINGLE QUERY REQUEST
 // ============================================================
 
 // GET /api/query/requests/:id
-const getQueryRequestById = async (
-    req,
-    res
-) => {
-    try {
-        const requestId =
-            Number(req.params.id);
+const getQueryRequestById =
+    async (req, res) => {
+        try {
+            const requestId =
+                Number(req.params.id);
 
-        if (!Number.isInteger(requestId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid request ID"
-            });
-        }
+            if (
+                !Number.isInteger(
+                    requestId
+                )
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Invalid request ID"
+                });
+            }
 
-        let sql = `
-            SELECT
-                qr.request_id,
-                qr.submitted_by,
-                submitter.username AS submitted_by_name,
-                qr.sql_query,
-                qr.query_type,
-                qr.status,
-                qr.submitted_at,
-                qr.reviewed_by,
-                reviewer.username AS reviewed_by_name,
-                qr.reviewed_at,
-                qr.rejection_reason,
-                qr.execution_result
-            FROM QUERY_REQUEST qr
-            INNER JOIN users submitter
-                ON qr.submitted_by = submitter.user_id
-            LEFT JOIN users reviewer
-                ON qr.reviewed_by = reviewer.user_id
-            WHERE qr.request_id = ?
-        `;
-
-        const params = [requestId];
-
-        if (req.user.role !== "ADMIN") {
-            sql += `
-                AND qr.submitted_by = ?
+            let sql = `
+                SELECT
+                    qr.request_id,
+                    qr.submitted_by,
+                    submitter.username
+                        AS submitted_by_name,
+                    qr.sql_query,
+                    qr.query_type,
+                    qr.status,
+                    qr.submitted_at,
+                    qr.reviewed_by,
+                    reviewer.username
+                        AS reviewed_by_name,
+                    qr.reviewed_at,
+                    qr.rejection_reason,
+                    qr.execution_result
+                FROM QUERY_REQUEST qr
+                INNER JOIN users submitter
+                    ON qr.submitted_by =
+                       submitter.user_id
+                LEFT JOIN users reviewer
+                    ON qr.reviewed_by =
+                       reviewer.user_id
+                WHERE qr.request_id = ?
             `;
 
-            params.push(req.user.id);
-        }
+            const params = [requestId];
 
-        const [rows] = await pool.query(
-            sql,
-            params
-        );
+            if (req.user.role !== "ADMIN") {
+                sql += `
+                    AND qr.submitted_by = ?
+                `;
 
-        if (rows.length === 0) {
-            return res.status(404).json({
+                params.push(req.user.id);
+            }
+
+            const [rows] =
+                await pool.query(
+                    sql,
+                    params
+                );
+
+            if (rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "Query request not found"
+                });
+            }
+
+            return res.json({
+                success: true,
+                data: rows[0]
+            });
+        } catch (error) {
+            console.error(
+                "Error getting query request:",
+                error
+            );
+
+            return res.status(500).json({
                 success: false,
                 message:
-                    "Query request not found"
+                    error.message ||
+                    "Failed to get query request"
             });
         }
-
-        return res.json({
-            success: true,
-            data: rows[0]
-        });
-    } catch (error) {
-        console.error(
-            "Error getting query request:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                error.message ||
-                "Failed to get query request"
-        });
-    }
-};
+    };
 
 
 // ============================================================
@@ -813,7 +867,7 @@ const approveQueryRequest = async (
     req,
     res
 ) => {
-    let connection;
+    let approvalConnection = null;
 
     try {
         const requestId =
@@ -826,14 +880,22 @@ const approveQueryRequest = async (
             });
         }
 
-        connection =
+
+        // ====================================================
+        // STEP 1
+        // Lock the PENDING request.
+        //
+        // This transaction only performs the approval
+        // state transition.
+        // ====================================================
+
+        approvalConnection =
             await pool.getConnection();
 
-        // Lock the request while reviewing it.
-        await connection.beginTransaction();
+        await approvalConnection.beginTransaction();
 
         const [requests] =
-            await connection.query(
+            await approvalConnection.query(
                 `
                 SELECT
                     request_id,
@@ -849,7 +911,9 @@ const approveQueryRequest = async (
             );
 
         if (requests.length === 0) {
-            await connection.rollback();
+            await approvalConnection.rollback();
+            approvalConnection.release();
+            approvalConnection = null;
 
             return res.status(404).json({
                 success: false,
@@ -858,10 +922,13 @@ const approveQueryRequest = async (
             });
         }
 
-        const request = requests[0];
+        const request =
+            requests[0];
 
         if (request.status !== "PENDING") {
-            await connection.rollback();
+            await approvalConnection.rollback();
+            approvalConnection.release();
+            approvalConnection = null;
 
             return res.status(409).json({
                 success: false,
@@ -870,12 +937,21 @@ const approveQueryRequest = async (
             });
         }
 
-        // Re-classify the SQL on the server before execution.
-        const classification =
-            classifySql(request.sql_query);
 
-        if (classification.queryType !== "WRITE") {
-            await connection.rollback();
+        // Re-classify on the server before
+        // anything is executed.
+        const classification =
+            classifySql(
+                request.sql_query
+            );
+
+        if (
+            classification.queryType !==
+            "WRITE"
+        ) {
+            await approvalConnection.rollback();
+            approvalConnection.release();
+            approvalConnection = null;
 
             return res.status(400).json({
                 success: false,
@@ -884,8 +960,14 @@ const approveQueryRequest = async (
             });
         }
 
+
+        // ====================================================
         // PENDING -> APPROVED
-        await connection.query(
+        //
+        // reviewed_by and reviewed_at are saved here.
+        // ====================================================
+
+        await approvalConnection.query(
             `
             UPDATE QUERY_REQUEST
             SET
@@ -900,20 +982,53 @@ const approveQueryRequest = async (
             ]
         );
 
+
+        // Commit the approval transition
+        // BEFORE actual SQL execution.
+        await approvalConnection.commit();
+
+        approvalConnection.release();
+        approvalConnection = null;
+
+
+        // ====================================================
+        // STEP 2
         // APPROVED -> EXECUTING
-        await connection.query(
-            `
-            UPDATE QUERY_REQUEST
-            SET status = 'EXECUTING'
-            WHERE request_id = ?
-            `,
-            [requestId]
-        );
+        //
+        // This update is committed before the actual
+        // SQL execution starts, so EXECUTING is observable.
+        // ====================================================
+
+        const [executingUpdate] =
+            await pool.query(
+                `
+                UPDATE QUERY_REQUEST
+                SET status = 'EXECUTING'
+                WHERE request_id = ?
+                  AND status = 'APPROVED'
+                `,
+                [requestId]
+            );
+
+        if (
+            executingUpdate.affectedRows === 0
+        ) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "Request could not be moved to EXECUTING"
+            });
+        }
+
+
+        // ====================================================
+        // STEP 3
+        // Determine whether this is pure DML.
+        // ====================================================
 
         const statements =
             classification.statements;
 
-        // Determine whether this is a pure DML batch.
         const dmlKeywords = new Set([
             "INSERT",
             "UPDATE",
@@ -922,50 +1037,65 @@ const approveQueryRequest = async (
             "MERGE"
         ]);
 
-        const isDmlOnly = statements.every(
-            (statement) => {
-                const keyword =
-                    getMainKeyword(
-                        stripSqlComments(
-                            statement
-                        )
+        const isDmlOnly =
+            statements.every(
+                (statement) => {
+                    const keyword =
+                        getMainKeyword(
+                            stripSqlComments(
+                                statement
+                            )
+                        );
+
+                    return dmlKeywords.has(
+                        keyword
                     );
+                }
+            );
 
-                return dmlKeywords.has(
-                    keyword
-                );
-            }
-        );
 
-        let executionResult = null;
+        // ====================================================
+        // STEP 4
+        // PURE DML
+        //
+        // Separate transaction:
+        // BEGIN -> execute all -> COMMIT
+        //
+        // Any failure:
+        // ROLLBACK -> FAILED
+        // ====================================================
 
         if (isDmlOnly) {
-            // ----------------------------------------------------
-            // DML BATCH: TRANSACTION
-            // ----------------------------------------------------
-
-            await connection.beginTransaction();
+            let dmlConnection = null;
 
             try {
+                dmlConnection =
+                    await pool.getConnection();
+
+                await dmlConnection.beginTransaction();
+
                 const statementResults = [];
 
-                for (const statement of statements) {
+                for (
+                    const statement of statements
+                ) {
                     const [result] =
-                        await connection.query(
+                        await dmlConnection.query(
                             statement
                         );
 
                     statementResults.push({
                         affectedRows:
-                            result.affectedRows || 0,
+                            result.affectedRows ||
+                            0,
                         insertId:
-                            result.insertId || 0
+                            result.insertId ||
+                            0
                     });
                 }
 
-                await connection.commit();
-
-                executionResult = {
+                const executionResult = {
+                    success: true,
                     statements:
                         statementResults,
                     affectedRows:
@@ -981,32 +1111,51 @@ const approveQueryRequest = async (
                             0
                         )
                 };
-            } catch (executionError) {
-                await connection.rollback();
 
+                await dmlConnection.commit();
+
+                dmlConnection.release();
+                dmlConnection = null;
+
+
+                // DML execution succeeded.
                 await pool.query(
                     `
                     UPDATE QUERY_REQUEST
                     SET
-                        status = 'FAILED',
+                        status = 'COMPLETED',
                         execution_result = ?
                     WHERE request_id = ?
                     `,
                     [
-                        JSON.stringify({
-                            success: false,
-                            message:
-                                executionError.sqlMessage ||
-                                executionError.message,
-                            code:
-                                executionError.code ||
-                                null
-                        }),
+                        JSON.stringify(
+                            executionResult
+                        ),
                         requestId
                     ]
                 );
 
-                return res.status(400).json({
+                return res.json({
+                    success: true,
+                    data: {
+                        mode: "EXECUTED",
+                        requestId,
+                        status: "COMPLETED",
+                        affectedRows:
+                            executionResult.affectedRows,
+                        executionResult
+                    }
+                });
+            } catch (executionError) {
+                if (dmlConnection) {
+                    await dmlConnection
+                        .rollback()
+                        .catch(() => {});
+
+                    dmlConnection.release();
+                }
+
+                const executionResult = {
                     success: false,
                     message:
                         executionError.sqlMessage ||
@@ -1014,69 +1163,11 @@ const approveQueryRequest = async (
                         "Query execution failed",
                     code:
                         executionError.code ||
-                        null,
-                    data: {
-                        requestId,
-                        status: "FAILED"
-                    }
-                });
-            }
-        } else {
-            // ----------------------------------------------------
-            // DDL / MIXED WRITE: EXECUTE WITHOUT CLAIMING
-            // TRANSACTIONAL ROLLBACK BEHAVIOR
-            // ----------------------------------------------------
-
-            const statementResults = [];
-
-            try {
-                for (const statement of statements) {
-                    const [result] =
-                        await connection.query(
-                            statement
-                        );
-
-                    statementResults.push({
-                        affectedRows:
-                            result.affectedRows || 0,
-                        insertId:
-                            result.insertId || 0,
-                        warningCount:
-                            result.warningCount || 0
-                    });
-                }
-
-                executionResult = {
-                    statements:
-                        statementResults,
-                    affectedRows:
-                        statementResults.reduce(
-                            (
-                                total,
-                                item
-                            ) =>
-                                total +
-                                Number(
-                                    item.affectedRows
-                                ),
-                            0
-                        )
-                };
-            } catch (executionError) {
-                executionResult = {
-                    success: false,
-                    message:
-                        executionError.sqlMessage ||
-                        executionError.message,
-                    code:
-                        executionError.code ||
                         null
                 };
 
-                await connection.rollback().catch(
-                    () => {}
-                );
 
+                // The DML transaction was rolled back.
                 await pool.query(
                     `
                     UPDATE QUERY_REQUEST
@@ -1096,12 +1187,9 @@ const approveQueryRequest = async (
                 return res.status(400).json({
                     success: false,
                     message:
-                        executionError.sqlMessage ||
-                        executionError.message ||
-                        "Query execution failed",
+                        executionResult.message,
                     code:
-                        executionError.code ||
-                        null,
+                        executionResult.code,
                     data: {
                         requestId,
                         status: "FAILED"
@@ -1110,42 +1198,147 @@ const approveQueryRequest = async (
             }
         }
 
-        // Record successful execution.
-        await connection.query(
-            `
-            UPDATE QUERY_REQUEST
-            SET
-                status = 'COMPLETED',
-                execution_result = ?
-            WHERE request_id = ?
-            `,
-            [
-                JSON.stringify(
-                    executionResult
-                ),
-                requestId
-            ]
-        );
 
-        await connection.commit();
+        // ====================================================
+        // STEP 5
+        // DDL / DDL MIXED BATCH
+        //
+        // Execute without claiming transactional rollback
+        // because MySQL DDL may implicitly commit.
+        // ====================================================
 
-        return res.json({
-            success: true,
-            data: {
-                mode: "EXECUTED",
-                requestId,
-                status: "COMPLETED",
-                affectedRows:
-                    executionResult.affectedRows ||
-                    0,
-                executionResult
+        let ddlConnection = null;
+
+        try {
+            ddlConnection =
+                await pool.getConnection();
+
+            const statementResults = [];
+
+            for (
+                const statement of statements
+            ) {
+                const [result] =
+                    await ddlConnection.query(
+                        statement
+                    );
+
+                statementResults.push({
+                    affectedRows:
+                        result.affectedRows ||
+                        0,
+                    insertId:
+                        result.insertId ||
+                        0,
+                    warningCount:
+                        result.warningCount ||
+                        0
+                });
             }
-        });
-    } catch (error) {
-        if (connection) {
-            await connection.rollback().catch(
-                () => {}
+
+            const executionResult = {
+                success: true,
+                statements:
+                    statementResults,
+                affectedRows:
+                    statementResults.reduce(
+                        (
+                            total,
+                            item
+                        ) =>
+                            total +
+                            Number(
+                                item.affectedRows
+                            ),
+                        0
+                    )
+            };
+
+            ddlConnection.release();
+            ddlConnection = null;
+
+
+            await pool.query(
+                `
+                UPDATE QUERY_REQUEST
+                SET
+                    status = 'COMPLETED',
+                    execution_result = ?
+                WHERE request_id = ?
+                `,
+                [
+                    JSON.stringify(
+                        executionResult
+                    ),
+                    requestId
+                ]
             );
+
+            return res.json({
+                success: true,
+                data: {
+                    mode: "EXECUTED",
+                    requestId,
+                    status: "COMPLETED",
+                    affectedRows:
+                        executionResult.affectedRows,
+                    executionResult
+                }
+            });
+        } catch (executionError) {
+            if (ddlConnection) {
+                ddlConnection.release();
+            }
+
+            const executionResult = {
+                success: false,
+                message:
+                    executionError.sqlMessage ||
+                    executionError.message ||
+                    "Query execution failed",
+                code:
+                    executionError.code ||
+                    null
+            };
+
+
+            // Do not claim a rollback restored the database.
+            // MySQL DDL can implicitly commit.
+            await pool.query(
+                `
+                UPDATE QUERY_REQUEST
+                SET
+                    status = 'FAILED',
+                    execution_result = ?
+                WHERE request_id = ?
+                `,
+                [
+                    JSON.stringify(
+                        executionResult
+                    ),
+                    requestId
+                ]
+            );
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    executionResult.message,
+                code:
+                    executionResult.code,
+                data: {
+                    requestId,
+                    status: "FAILED"
+                }
+            });
+        }
+    } catch (error) {
+        if (approvalConnection) {
+            await approvalConnection
+                .rollback()
+                .catch(() => {});
+
+            approvalConnection.release();
         }
 
         console.error(
@@ -1159,12 +1352,9 @@ const approveQueryRequest = async (
                 error.sqlMessage ||
                 error.message ||
                 "Failed to approve query request",
-            code: error.code || null
+            code:
+                error.code || null
         });
-    } finally {
-        if (connection) {
-            connection.release();
-        }
     }
 };
 
@@ -1197,24 +1387,25 @@ const rejectQueryRequest = async (
                 ).trim()
                 : null;
 
-        const [result] = await pool.query(
-            `
-            UPDATE QUERY_REQUEST
-            SET
-                status = 'REJECTED',
-                reviewed_by = ?,
-                reviewed_at = CURRENT_TIMESTAMP,
-                rejection_reason = ?
-            WHERE
-                request_id = ?
-                AND status = 'PENDING'
-            `,
-            [
-                req.user.id,
-                rejectionReason,
-                requestId
-            ]
-        );
+        const [result] =
+            await pool.query(
+                `
+                UPDATE QUERY_REQUEST
+                SET
+                    status = 'REJECTED',
+                    reviewed_by = ?,
+                    reviewed_at = CURRENT_TIMESTAMP,
+                    rejection_reason = ?
+                WHERE
+                    request_id = ?
+                    AND status = 'PENDING'
+                `,
+                [
+                    req.user.id,
+                    rejectionReason,
+                    requestId
+                ]
+            );
 
         if (result.affectedRows === 0) {
             const [requests] =
@@ -1267,6 +1458,10 @@ const rejectQueryRequest = async (
     }
 };
 
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
     executeQuery,

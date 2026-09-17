@@ -143,12 +143,7 @@ export async function verifyApproval(approvalPassword) {
         return {
             success: true,
         };
-    } catch (error) {
-        console.error(
-            "Approval verification error:",
-            error
-        );
-
+    } catch {
         return {
             success: false,
             message:

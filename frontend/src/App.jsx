@@ -18,13 +18,22 @@ import Reports from "./pages/Reports";
 
 import AppLayout from "./layouts/AppLayout";
 
-import { getSession, isAdmin } from "./services/auth";
+import {
+    getSession,
+    isAdmin,
+    verifyApproval,
+} from "./services/auth";
+
+
+/* =========================================================
+   PROTECTED ROUTE
+   ========================================================= */
 
 function ProtectedRoute({ children }) {
     const location = useLocation();
     const session = getSession();
 
-    if (!session) {
+    if (!session || !session.token) {
         return (
             <Navigate
                 to="/login"
@@ -37,11 +46,16 @@ function ProtectedRoute({ children }) {
     return children;
 }
 
+
+/* =========================================================
+   ADMIN ROUTE
+   ========================================================= */
+
 function AdminRoute({ children }) {
     const location = useLocation();
     const session = getSession();
 
-    if (!session) {
+    if (!session || !session.token) {
         return (
             <Navigate
                 to="/login"
@@ -52,36 +66,67 @@ function AdminRoute({ children }) {
     }
 
     if (!isAdmin()) {
-        return <Navigate to="/dashboard" replace />;
+        return (
+            <Navigate
+                to="/dashboard"
+                replace
+            />
+        );
     }
 
     return children;
 }
 
-/*
- * SECOND PASSWORD FOR APPROVALS ONLY
- */
+
+/* =========================================================
+   ADMIN APPROVAL PASSWORD ROUTE
+   ========================================================= */
+
 function ApprovalPasswordRoute() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [verified, setVerified] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-    const APPROVAL_PASSWORD = "admin123";
-
-    if (verified) {
-        return <AdminPanel />;
-    }
-
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
-        if (password === APPROVAL_PASSWORD) {
-            setVerified(true);
-            setError("");
-        } else {
-            setError("Incorrect approval password.");
-            setPassword("");
+        setError("");
+
+        if (!password) {
+            setError("Enter the approval password.");
+            return;
         }
+
+        setLoading(true);
+
+        const result = await verifyApproval(password);
+
+        if (!result.success) {
+            setError(
+                result.message ||
+                    "Approval verification failed."
+            );
+
+            setPassword("");
+            setLoading(false);
+            return;
+        }
+
+        /*
+         * verifyApproval() stores the short-lived
+         * approval token returned by the backend.
+         */
+        setVerified(true);
+        setPassword("");
+        setLoading(false);
+    }
+
+    /*
+     * Approval password successfully verified.
+     */
+    if (verified) {
+        return <AdminPanel />;
     }
 
     return (
@@ -144,12 +189,14 @@ function ApprovalPasswordRoute() {
                         }
                         placeholder="Approval password"
                         autoFocus
+                        disabled={loading}
                         style={{
                             width: "100%",
                             boxSizing: "border-box",
                             padding: "12px 14px",
                             background: "#0b0f10",
-                            border: "1px solid rgba(255,255,255,0.1)",
+                            border:
+                                "1px solid rgba(255,255,255,0.1)",
                             borderRadius: "8px",
                             color: "#eaf1f1",
                             outline: "none",
@@ -171,16 +218,22 @@ function ApprovalPasswordRoute() {
 
                     <button
                         type="submit"
+                        disabled={loading}
                         style={{
                             width: "100%",
                             padding: "12px",
                             border: "none",
                             borderRadius: "8px",
-                            cursor: "pointer",
+                            cursor: loading
+                                ? "not-allowed"
+                                : "pointer",
                             fontWeight: 600,
+                            opacity: loading ? 0.7 : 1,
                         }}
                     >
-                        UNLOCK APPROVALS
+                        {loading
+                            ? "VERIFYING..."
+                            : "UNLOCK APPROVALS"}
                     </button>
                 </form>
             </div>
@@ -188,15 +241,29 @@ function ApprovalPasswordRoute() {
     );
 }
 
+
+/* =========================================================
+   APP
+   ========================================================= */
+
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* PUBLIC */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
 
-                {/* ALL AUTHENTICATED USERS */}
+                {/* PUBLIC */}
+                <Route
+                    path="/"
+                    element={<Landing />}
+                />
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+
+                {/* AUTHENTICATED USERS */}
                 <Route
                     element={
                         <ProtectedRoute>
@@ -204,6 +271,7 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
+
                     <Route
                         path="/dashboard"
                         element={<Dashboard />}
@@ -224,13 +292,13 @@ function App() {
                         element={<RecordManagement />}
                     />
 
-                    {/* REPORTS — EVERY LOGGED-IN USER */}
                     <Route
                         path="/reports"
                         element={<Reports />}
                     />
 
-                    {/* APPROVALS — ADMIN + SECOND PASSWORD */}
+
+                    {/* ADMIN + SECOND APPROVAL PASSWORD */}
                     <Route
                         path="/admin"
                         element={
@@ -239,13 +307,21 @@ function App() {
                             </AdminRoute>
                         }
                     />
+
                 </Route>
+
 
                 {/* FALLBACK */}
                 <Route
                     path="*"
-                    element={<Navigate to="/" replace />}
+                    element={
+                        <Navigate
+                            to="/"
+                            replace
+                        />
+                    }
                 />
+
             </Routes>
         </BrowserRouter>
     );

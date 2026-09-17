@@ -2,15 +2,23 @@ import { useState } from "react";
 import { executeQuery } from "../services/api";
 import "../styles/query-studio.css";
 
+
+/* =========================================================
+   SAVED QUERIES
+   ========================================================= */
+
 const sampleQueries = [
     {
         name: "All customers",
         sql: "SELECT * FROM Customer;",
     },
+
     {
         name: "Bill status",
-        sql: "SELECT bill_status, COUNT(*) AS count FROM Bill GROUP BY bill_status;",
+        sql:
+            "SELECT bill_status, COUNT(*) AS count FROM Bill GROUP BY bill_status;",
     },
+
     {
         name: "Customer + property join",
         sql: `SELECT
@@ -23,6 +31,7 @@ JOIN Customer_Owns_Property cop
 JOIN Property p
     ON cop.property_id = p.property_id;`,
     },
+
     {
         name: "Top consuming meters",
         sql: `SELECT
@@ -33,6 +42,7 @@ GROUP BY meter_id
 ORDER BY total_consumption DESC
 LIMIT 10;`,
     },
+
     {
         name: "Payment methods",
         sql: `SELECT
@@ -42,6 +52,7 @@ LIMIT 10;`,
 FROM Payment
 GROUP BY payment_mode;`,
     },
+
     {
         name: "Customer consumption",
         sql: `SELECT
@@ -61,6 +72,11 @@ ORDER BY total_consumption DESC;`,
     },
 ];
 
+
+/* =========================================================
+   MAIN COMPONENT
+   ========================================================= */
+
 function QueryStudio() {
     const [query, setQuery] = useState(
         sampleQueries[0].sql
@@ -70,6 +86,11 @@ function QueryStudio() {
     const [executed, setExecuted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+
+    /* =====================================================
+       RUN QUERY
+       ===================================================== */
 
     async function runQuery() {
         if (!query.trim()) {
@@ -83,20 +104,52 @@ function QueryStudio() {
         setResult(null);
 
         try {
-            const data = await executeQuery(query.trim());
+            const data = await executeQuery(
+                query.trim()
+            );
+
+            /*
+             * Backend responses:
+             *
+             * READ:
+             * {
+             *   mode: "EXECUTED",
+             *   queryType: "SELECT",
+             *   rows: [...],
+             *   fields: [...]
+             * }
+             *
+             * WRITE:
+             * {
+             *   mode: "PENDING_APPROVAL",
+             *   requestId: 12,
+             *   queryType: "WRITE",
+             *   status: "PENDING"
+             * }
+             */
 
             setResult(data);
             setExecuted(true);
+
         } catch (err) {
-            console.error("Query execution failed:", err);
+            console.error(
+                "Query execution failed:",
+                err
+            );
 
             setError(
-                err.message || "Query execution failed."
+                err.message ||
+                    "Query execution failed."
             );
         } finally {
             setLoading(false);
         }
     }
+
+
+    /* =====================================================
+       LOAD SAVED QUERY
+       ===================================================== */
 
     function loadQuery(sql) {
         setQuery(sql);
@@ -105,20 +158,34 @@ function QueryStudio() {
         setError("");
     }
 
+
     const resultRows = getRows(result);
+
     const resultColumns = getColumns(
         result,
         resultRows
     );
 
+    const isPending =
+        result?.mode === "PENDING_APPROVAL";
+
+    const isExecuted =
+        result?.mode === "EXECUTED";
+
     const isRowResult =
         resultRows.length > 0 ||
         resultColumns.length > 0;
 
+
     return (
         <div className="query-page">
-            {/* HEADER */}
+
+            {/* =================================================
+                HEADER
+            ================================================= */}
+
             <div className="query-header">
+
                 <div>
                     <span className="eyebrow">
                         DATABASE TOOLS
@@ -132,7 +199,9 @@ function QueryStudio() {
                     </p>
                 </div>
 
+
                 <div className="query-mode">
+
                     <button className="active">
                         SQL
                     </button>
@@ -143,16 +212,28 @@ function QueryStudio() {
                     >
                         NL → SQL
                     </button>
+
                 </div>
+
             </div>
+
+
+            {/* =================================================
+                MAIN LAYOUT
+            ================================================= */}
 
             <div className="query-layout">
 
-                {/* SIDEBAR */}
+                {/* =================================================
+                    SIDEBAR
+                ================================================= */}
+
                 <aside className="query-sidebar">
+
                     <span className="query-sidebar-title">
                         SAVED QUERIES
                     </span>
+
 
                     {sampleQueries.map(
                         (item) => (
@@ -169,21 +250,37 @@ function QueryStudio() {
                         )
                     )}
 
+
                     <div className="query-info">
-                        <span>DATABASE</span>
+
+                        <span>
+                            DATABASE
+                        </span>
 
                         <strong>
                             utility_billing_db
                         </strong>
+
                     </div>
+
                 </aside>
 
-                {/* MAIN */}
+
+                {/* =================================================
+                    MAIN
+                ================================================= */}
+
                 <main className="query-main">
 
-                    {/* EDITOR */}
+
+                    {/* =================================================
+                        EDITOR
+                    ================================================= */}
+
                     <section className="editor-panel">
+
                         <div className="editor-header">
+
                             <span>
                                 QUERY EDITOR
                             </span>
@@ -197,50 +294,80 @@ function QueryStudio() {
                                     ? "RUNNING..."
                                     : "RUN QUERY"}
                             </button>
+
                         </div>
+
 
                         <textarea
                             value={query}
-                            onChange={(e) =>
+                            onChange={(event) =>
                                 setQuery(
-                                    e.target.value
+                                    event.target.value
                                 )
                             }
                             spellCheck="false"
                             placeholder="Enter SQL query..."
                         />
+
                     </section>
 
-                    {/* RESULTS */}
+
+                    {/* =================================================
+                        RESULTS
+                    ================================================= */}
+
                     <section className="results-panel">
+
                         <div className="results-header">
+
                             <div>
+
                                 <span>
                                     RESULTS
                                 </span>
 
                                 <strong>
+
                                     {!executed
                                         ? "No execution"
                                         : loading
                                         ? "Executing..."
+                                        : isPending
+                                        ? "Pending approval"
                                         : getResultSummary(
                                               result
                                           )}
+
                                 </strong>
+
                             </div>
 
-                            {executed &&
+
+                            {isExecuted &&
                                 !error && (
                                     <span className="success-label">
                                         QUERY COMPLETE
                                     </span>
                                 )}
+
+                            {isPending &&
+                                !error && (
+                                    <span className="success-label">
+                                        APPROVAL REQUIRED
+                                    </span>
+                                )}
+
                         </div>
 
-                        {/* ERROR */}
+
+                        {/* =================================================
+                            ERROR
+                        ================================================= */}
+
                         {error ? (
+
                             <div className="results-error">
+
                                 <strong>
                                     QUERY ERROR
                                 </strong>
@@ -248,27 +375,111 @@ function QueryStudio() {
                                 <span>
                                     {error}
                                 </span>
+
                             </div>
+
                         ) : !executed ? (
+
                             <div className="results-empty">
                                 Run a query to view
                                 results.
                             </div>
+
+                        ) : isPending ? (
+
+                            <PendingApproval
+                                result={result}
+                            />
+
                         ) : isRowResult ? (
+
                             <ResultTable
                                 rows={resultRows}
-                                columns={
-                                    resultColumns
-                                }
+                                columns={resultColumns}
                             />
+
                         ) : (
+
                             <OperationResult
                                 result={result}
                             />
+
                         )}
+
                     </section>
+
                 </main>
+
             </div>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   PENDING APPROVAL RESULT
+   ========================================================= */
+
+function PendingApproval({ result }) {
+    return (
+        <div className="operation-result">
+
+            <div className="operation-result-title">
+                QUERY SUBMITTED FOR APPROVAL
+            </div>
+
+
+            <div className="operation-result-grid">
+
+                <div>
+                    <span>
+                        REQUEST ID
+                    </span>
+
+                    <strong>
+                        #{result?.requestId ?? "—"}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>
+                        QUERY TYPE
+                    </span>
+
+                    <strong>
+                        {result?.queryType || "WRITE"}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>
+                        STATUS
+                    </span>
+
+                    <strong>
+                        {result?.status || "PENDING"}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div
+                style={{
+                    marginTop: "20px",
+                    fontSize: "13px",
+                    lineHeight: 1.6,
+                    color: "#8f9a9b",
+                }}
+            >
+                This query has not been executed.
+                It has been sent to the approval queue
+                for administrator review.
+            </div>
+
         </div>
     );
 }
@@ -276,7 +487,7 @@ function QueryStudio() {
 
 /* =========================================================
    RESULT TABLE
-========================================================= */
+   ========================================================= */
 
 function ResultTable({
     rows,
@@ -284,9 +495,13 @@ function ResultTable({
 }) {
     return (
         <div className="query-results-wrapper">
+
             <table className="query-results">
+
                 <thead>
+
                     <tr>
+
                         {columns.map(
                             (column) => (
                                 <th key={column}>
@@ -294,21 +509,26 @@ function ResultTable({
                                 </th>
                             )
                         )}
+
                     </tr>
+
                 </thead>
 
+
                 <tbody>
+
                     {rows.map(
                         (row, rowIndex) => (
+
                             <tr
                                 key={rowIndex}
                             >
+
                                 {columns.map(
                                     (column) => (
+
                                         <td
-                                            key={
-                                                column
-                                            }
+                                            key={column}
                                         >
                                             {formatValue(
                                                 row[
@@ -316,13 +536,19 @@ function ResultTable({
                                                 ]
                                             )}
                                         </td>
+
                                     )
                                 )}
+
                             </tr>
+
                         )
                     )}
+
                 </tbody>
+
             </table>
+
         </div>
     );
 }
@@ -330,7 +556,7 @@ function ResultTable({
 
 /* =========================================================
    OPERATION RESULT
-========================================================= */
+   ========================================================= */
 
 function OperationResult({
     result,
@@ -344,15 +570,19 @@ function OperationResult({
     const insertId =
         getInsertId(result);
 
+
     return (
         <div className="operation-result">
+
             <div className="operation-result-title">
                 QUERY EXECUTED SUCCESSFULLY
             </div>
 
+
             <div className="operation-result-grid">
 
                 <div>
+
                     <span>
                         OPERATION
                     </span>
@@ -360,9 +590,12 @@ function OperationResult({
                     <strong>
                         {operation}
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <span>
                         AFFECTED ROWS
                     </span>
@@ -370,10 +603,14 @@ function OperationResult({
                     <strong>
                         {affectedRows}
                     </strong>
+
                 </div>
 
+
                 {insertId !== null && (
+
                     <div>
+
                         <span>
                             INSERT ID
                         </span>
@@ -381,9 +618,13 @@ function OperationResult({
                         <strong>
                             {insertId}
                         </strong>
+
                     </div>
+
                 )}
+
             </div>
+
         </div>
     );
 }
@@ -391,49 +632,23 @@ function OperationResult({
 
 /* =========================================================
    DATA HELPERS
-========================================================= */
+   ========================================================= */
 
 function getRows(result) {
     if (!result) {
         return [];
     }
 
-    // Normal single SELECT result
-    if (Array.isArray(result.result)) {
-        if (
-            result.result.length === 0
-        ) {
-            return [];
-        }
+    /*
+     * Backend now returns:
+     *
+     * {
+     *   rows: [...]
+     * }
+     */
 
-        if (
-            typeof result.result[0] ===
-                "object" &&
-            !Array.isArray(result.result[0])
-        ) {
-            return result.result;
-        }
-    }
-
-    // Multiple statement result
-    if (
-        Array.isArray(result.result) &&
-        Array.isArray(result.result[0])
-    ) {
-        for (
-            const statementResult of result.result
-        ) {
-            if (
-                Array.isArray(
-                    statementResult
-                ) &&
-                statementResult.length > 0 &&
-                typeof statementResult[0] ===
-                    "object"
-            ) {
-                return statementResult;
-            }
-        }
+    if (Array.isArray(result.rows)) {
+        return result.rows;
     }
 
     return [];
@@ -444,22 +659,33 @@ function getColumns(
     result,
     rows
 ) {
+    /*
+     * If rows exist, use their object keys.
+     */
     if (rows.length > 0) {
         return Object.keys(rows[0]);
     }
 
+
+    /*
+     * If query returns zero rows,
+     * use MySQL field metadata.
+     */
     if (
         result &&
         Array.isArray(result.fields) &&
         result.fields.length > 0
     ) {
-        return result.fields.map(
-            (field) =>
-                field.name ||
-                field.orgName ||
-                "column"
-        );
+        return result.fields
+            .map(
+                (field) =>
+                    field.name ||
+                    field.orgName ||
+                    field.columnName
+            )
+            .filter(Boolean);
     }
+
 
     return [];
 }
@@ -470,30 +696,14 @@ function getAffectedRows(result) {
         return 0;
     }
 
+    /*
+     * Backend returns affectedRows directly.
+     */
     if (
-        typeof result.result
-            ?.affectedRows === "number"
+        typeof result.affectedRows ===
+        "number"
     ) {
-        return result.result.affectedRows;
-    }
-
-    if (
-        Array.isArray(result.result)
-    ) {
-        const operationResult =
-            result.result.find(
-                (item) =>
-                    item &&
-                    typeof item ===
-                        "object" &&
-                    typeof item.affectedRows ===
-                        "number"
-            );
-
-        return (
-            operationResult?.affectedRows ??
-            0
-        );
+        return result.affectedRows;
     }
 
     return 0;
@@ -505,31 +715,15 @@ function getInsertId(result) {
         return null;
     }
 
+    /*
+     * Backend returns insertId directly.
+     */
     if (
-        typeof result.result
-            ?.insertId === "number" &&
-        result.result.insertId > 0
+        typeof result.insertId ===
+            "number" &&
+        result.insertId > 0
     ) {
-        return result.result.insertId;
-    }
-
-    if (
-        Array.isArray(result.result)
-    ) {
-        const operationResult =
-            result.result.find(
-                (item) =>
-                    item &&
-                    typeof item ===
-                        "object" &&
-                    typeof item.insertId ===
-                        "number" &&
-                    item.insertId > 0
-            );
-
-        return operationResult
-            ? operationResult.insertId
-            : null;
+        return result.insertId;
     }
 
     return null;
@@ -537,22 +731,18 @@ function getInsertId(result) {
 
 
 function detectOperation(result) {
-    const queryResults =
-        Array.isArray(result?.result)
-            ? result.result
-            : [result?.result];
+    if (!result) {
+        return "SQL";
+    }
 
-    for (
-        const item of queryResults
-    ) {
-        if (!item) continue;
+    /*
+     * For the current backend,
+     * READ operations don't reach this component
+     * because rows/fields are rendered as a table.
+     */
 
-        if (
-            typeof item === "object" &&
-            "affectedRows" in item
-        ) {
-            return "DML / DDL";
-        }
+    if (typeof result.queryType === "string") {
+        return result.queryType;
     }
 
     return "SQL";
@@ -560,17 +750,22 @@ function detectOperation(result) {
 
 
 function getResultSummary(result) {
+    if (!result) {
+        return "Query complete";
+    }
+
     const rows = getRows(result);
 
     if (rows.length > 0) {
         return `${rows.length} rows`;
     }
 
-    const affectedRows =
-        getAffectedRows(result);
-
-    if (affectedRows > 0) {
-        return `${affectedRows} affected`;
+    if (
+        typeof result.affectedRows ===
+            "number" &&
+        result.affectedRows > 0
+    ) {
+        return `${result.affectedRows} affected`;
     }
 
     return "Query complete";
@@ -593,5 +788,6 @@ function formatValue(value) {
 
     return String(value);
 }
+
 
 export default QueryStudio;

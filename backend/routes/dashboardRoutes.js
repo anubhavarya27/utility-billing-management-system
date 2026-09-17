@@ -1,22 +1,30 @@
 const express = require("express");
 
-const router = express.Router();
-
 const {
     getDashboardSummary,
     getBillStatus,
-    getPaymentMethods
+    getPaymentMethods,
+    getConsumption,
+    getRevenue,
+    getTopMeters,
+    getCustomerSummary,
+    getServiceDistribution,
+    getMeterStatus
 } = require("../controllers/dashboardController");
 
+const router = express.Router();
 
-// Dashboard summary
+// Existing endpoints
 router.get("/summary", getDashboardSummary);
-
-// Bill status
 router.get("/bill-status", getBillStatus);
-
-// Payment methods
 router.get("/payment-methods", getPaymentMethods);
 
+// New dashboard endpoints
+router.get("/consumption", getConsumption);
+router.get("/revenue", getRevenue);
+router.get("/top-meters", getTopMeters);
+router.get("/customer-summary", getCustomerSummary);
+router.get("/service-distribution", getServiceDistribution);
+router.get("/meter-status", getMeterStatus);
 
 module.exports = router;

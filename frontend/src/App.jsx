@@ -6,6 +6,7 @@ import {
     useLocation,
 } from "react-router-dom";
 import { useState } from "react";
+import OperationsHub from "./pages/OperationsHub";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -271,6 +272,12 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
+                    <Route path="/customer-360" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
+<Route path="/property-portfolio" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
+<Route path="/meter-monitor" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
+<Route path="/tariff-lab" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
+<Route path="/billing-center" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
+<Route path="/payment-hub" element={<ProtectedRoute><OperationsHub /></ProtectedRoute>} />
 
                     <Route
                         path="/dashboard"

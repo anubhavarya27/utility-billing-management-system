@@ -709,11 +709,11 @@ function SummaryCard({
                 {icon}
             </div>
 
-            <span>
+            <span className="summary-label">
                 {label}
             </span>
 
-            <strong>
+            <strong className="summary-value">
                 {value}
             </strong>
 

@@ -18,13 +18,8 @@ import {
 
 import { NavLink } from "react-router-dom";
 
-import {
-    isAdmin,
-} from "../services/auth";
-
-import {
-    getQueryRequests,
-} from "../services/api";
+import { isAdmin } from "../services/auth";
+import { getQueryRequests } from "../services/api";
 
 
 const mainNav = [
@@ -59,26 +54,32 @@ const mainNav = [
 const operationsNav = [
     {
         label: "Customer 360",
+        path: "/customer-360",
         icon: Users,
     },
     {
         label: "Property Portfolio",
+        path: "/property-portfolio",
         icon: Building2,
     },
     {
         label: "Meter Monitor",
+        path: "/meter-monitor",
         icon: Gauge,
     },
     {
         label: "Tariff Lab",
+        path: "/tariff-lab",
         icon: FileText,
     },
     {
         label: "Billing Center",
+        path: "/billing-center",
         icon: Receipt,
     },
     {
         label: "Payment Hub",
+        path: "/payment-hub",
         icon: CreditCard,
     },
 ];
@@ -87,8 +88,8 @@ const operationsNav = [
 function Sidebar() {
     const admin = isAdmin();
 
-    const [pendingCount, setPendingCount] =
-        useState(0);
+    const [pendingCount, setPendingCount] = useState(0);
+
 
     /* =====================================================
        LOAD PENDING APPROVAL COUNT
@@ -104,27 +105,21 @@ function Sidebar() {
 
         async function loadPendingCount() {
             try {
-                const data =
-                    await getQueryRequests();
+                const data = await getQueryRequests();
 
                 if (!mounted) {
                     return;
                 }
 
-                const requests =
-                    Array.isArray(data)
-                        ? data
-                        : [];
+                const requests = Array.isArray(data)
+                    ? data
+                    : [];
 
-                const count =
-                    requests.filter(
-                        (request) =>
-                            String(
-                                request.status ||
-                                    ""
-                            ).toUpperCase() ===
-                            "PENDING"
-                    ).length;
+                const count = requests.filter(
+                    (request) =>
+                        String(request.status || "").toUpperCase() ===
+                        "PENDING"
+                ).length;
 
                 setPendingCount(count);
             } catch (error) {
@@ -137,15 +132,10 @@ function Sidebar() {
 
         loadPendingCount();
 
-        /*
-         * Keep the badge synchronized with the
-         * approval queue.
-         */
-        const interval =
-            setInterval(
-                loadPendingCount,
-                10000
-            );
+        const interval = setInterval(
+            loadPendingCount,
+            10000
+        );
 
         return () => {
             mounted = false;
@@ -171,7 +161,6 @@ function Sidebar() {
                 </div>
 
                 <div>
-
                     <strong>
                         U/BILL
                     </strong>
@@ -181,7 +170,6 @@ function Sidebar() {
                             ? "ADMIN CONSOLE"
                             : "UTILITY SYSTEM"}
                     </span>
-
                 </div>
 
             </div>
@@ -193,7 +181,9 @@ function Sidebar() {
 
             <nav className="sidebar-nav">
 
-                {/* OVERVIEW */}
+                {/* =================================================
+                    OVERVIEW
+                   ================================================= */}
 
                 <div className="nav-group">
 
@@ -210,9 +200,7 @@ function Sidebar() {
                             <NavLink
                                 key={path}
                                 to={path}
-                                className={({
-                                    isActive,
-                                }) =>
+                                className={({ isActive }) =>
                                     `side-link ${
                                         isActive
                                             ? "active"
@@ -220,11 +208,11 @@ function Sidebar() {
                                     }`
                                 }
                             >
-
                                 <Icon size={15} />
 
-                                {label}
-
+                                <span>
+                                    {label}
+                                </span>
                             </NavLink>
                         )
                     )}
@@ -232,7 +220,9 @@ function Sidebar() {
                 </div>
 
 
-                {/* OPERATIONS */}
+                {/* =================================================
+                    OPERATIONS
+                   ================================================= */}
 
                 <div className="nav-group">
 
@@ -243,34 +233,42 @@ function Sidebar() {
                     {operationsNav.map(
                         ({
                             label,
+                            path,
                             icon: Icon,
                         }) => (
-                            <div
-                                className="side-link"
-                                key={label}
+                            <NavLink
+                                key={path}
+                                to={path}
+                                className={({ isActive }) =>
+                                    `side-link ${
+                                        isActive
+                                            ? "active"
+                                            : ""
+                                    }`
+                                }
                             >
-
                                 <Icon size={15} />
 
-                                {label}
-
-                            </div>
+                                <span>
+                                    {label}
+                                </span>
+                            </NavLink>
                         )
                     )}
 
                 </div>
 
 
-                {/* ADMIN */}
+                {/* =================================================
+                    ADMIN
+                   ================================================= */}
 
                 {admin && (
                     <div className="nav-group">
 
                         <NavLink
                             to="/admin"
-                            className={({
-                                isActive,
-                            }) =>
+                            className={({ isActive }) =>
                                 `side-link ${
                                     isActive
                                         ? "active"
@@ -279,11 +277,11 @@ function Sidebar() {
                             }
                         >
 
-                            <ShieldCheck
-                                size={15}
-                            />
+                            <ShieldCheck size={15} />
 
-                            Approvals
+                            <span>
+                                Approvals
+                            </span>
 
                             {pendingCount > 0 && (
                                 <span className="approval-count">

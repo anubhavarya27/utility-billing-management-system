@@ -59,13 +59,13 @@
     display: block;
     font-family: "IBM Plex Mono", monospace;
     font-size: 17px;
+    color: #eaf1f1 !important;
 }
 
 .sidebar-brand span {
     display: block;
     margin-top: 3px;
-
-    color: #536164;
+    color: #536164 !important;
     font-family: "IBM Plex Mono", monospace;
     font-size: 9px;
     letter-spacing: 0.12em;
@@ -94,7 +94,6 @@
 
 .side-link {
     min-height: 39px;
-
     padding: 0 10px;
 
     display: flex;
@@ -107,8 +106,12 @@
     font-size: 14px;
 
     cursor: pointer;
+    text-decoration: none;
 }
-
+.side-link:hover,
+.side-link.active {
+    text-decoration: none;
+}
 .side-link svg {
     width: 17px;
     height: 17px;
@@ -731,4 +734,537 @@
     color: #5fd0be;
     border-color: rgba(95, 208, 190, 0.28);
     background: rgba(95, 208, 190, 0.035);
+}
+/* =========================================================
+   U/BILL EER SCHEMA
+   ========================================================= */
+
+.eer-schema {
+    position: relative;
+    width: 100%;
+    min-width: 1250px;
+    min-height: 1080px;
+    padding: 45px;
+    overflow: auto;
+
+    background:
+        linear-gradient(rgba(95, 208, 190, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95, 208, 190, 0.025) 1px, transparent 1px),
+        #070c0d;
+
+    background-size: 32px 32px;
+    border: 1px solid rgba(178, 208, 212, 0.08);
+}
+
+/* ---------- ENTITY CARDS ---------- */
+
+.eer-card {
+    position: absolute;
+    width: 230px;
+
+    background: rgba(10, 20, 21, 0.96);
+    border: 1px solid rgba(95, 208, 190, 0.22);
+    border-radius: 7px;
+
+    box-shadow:
+        0 15px 40px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255,255,255,0.018);
+
+    overflow: hidden;
+}
+
+.eer-card-head {
+    min-height: 42px;
+    padding: 11px 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid rgba(178, 208, 212, 0.08);
+}
+
+.eer-card-head strong {
+    color: #5fd0be;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+}
+
+.eer-card-head span {
+    color: #506163;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+}
+
+.eer-field {
+    min-height: 30px;
+    padding: 7px 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    color: #9aacab;
+
+    border-bottom: 1px solid rgba(178, 208, 212, 0.045);
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9px;
+}
+
+.eer-field:last-child {
+    border-bottom: 0;
+}
+
+.eer-field small {
+    color: #53696a;
+    font-size: 7px;
+}
+
+.eer-field.pk b,
+.eer-field.partial b {
+    color: #f2a93b;
+}
+
+.eer-field.multi b {
+    color: #5fd0be;
+}
+
+.eer-field.derived b {
+    color: #aab9b7;
+    font-style: italic;
+}
+
+.eer-field.derived {
+    border-bottom: 0;
+}
+
+.eer-section {
+    padding: 7px 13px 9px;
+    border-bottom: 1px solid rgba(178, 208, 212, 0.045);
+}
+
+.eer-special {
+    display: flex;
+    justify-content: space-between;
+
+    color: #d7e2e0;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.eer-special span {
+    color: #53696a;
+    font-size: 7px;
+}
+
+.eer-subfield {
+    margin: 6px 0 0 13px;
+
+    color: #738486;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 8px;
+}
+
+.identified-note {
+    padding: 9px 13px;
+
+    color: #53696a;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 7px;
+}
+
+/* ---------- POSITIONS ---------- */
+
+.customer-card {
+    left: 45px;
+    top: 55px;
+}
+
+.property-card {
+    left: 500px;
+    top: 85px;
+}
+
+.meter-card {
+    left: 950px;
+    top: 55px;
+}
+
+.reading-card {
+    left: 950px;
+    top: 350px;
+}
+
+.service-card {
+    left: 65px;
+    top: 440px;
+}
+
+.bill-card {
+    left: 500px;
+    top: 430px;
+}
+
+.tariff-card {
+    left: 330px;
+    top: 700px;
+}
+
+.payment-card {
+    left: 950px;
+    top: 650px;
+}
+
+/* ---------- RELATIONSHIPS ---------- */
+
+.eer-relationship {
+    position: absolute;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #718788;
+}
+
+.eer-diamond,
+.eer-double-diamond {
+    width: 78px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    transform: rotate(45deg);
+
+    background: rgba(36, 27, 12, 0.95);
+    border: 1px solid rgba(242, 169, 59, 0.65);
+
+    color: #f2a93b;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+}
+
+.eer-double-diamond {
+    border: 3px double rgba(95, 208, 190, 0.5);
+
+    background: rgba(10, 25, 25, 0.95);
+    color: #5fd0be;
+}
+
+.eer-diamond::after,
+.eer-double-diamond::after {
+    content: "";
+}
+
+.eer-diamond,
+.eer-double-diamond {
+    text-align: center;
+}
+
+.eer-diamond {
+    transform: rotate(45deg);
+}
+
+.eer-cardinality {
+    color: #a8b8b7;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.relationship-attrs {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+
+    width: 140px;
+    transform: translateX(-50%);
+
+    color: #647677;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 7px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* OWNS */
+
+.owns {
+    left: 290px;
+    top: 105px;
+    width: 210px;
+}
+
+/* INCORPORATES */
+
+.incorporates {
+    left: 730px;
+    top: 105px;
+    width: 220px;
+}
+
+/* HAS */
+
+.has-reading {
+    left: 825px;
+    top: 320px;
+    width: 180px;
+}
+
+/* GENERATES */
+
+.generates {
+    left: 285px;
+    top: 445px;
+    width: 215px;
+}
+
+/* PAID */
+
+.paid {
+    left: 760px;
+    top: 690px;
+    width: 190px;
+}
+
+/* ---------- TARIFF ---------- */
+
+.tariff-card {
+    width: 200px;
+}
+
+/* ---------- SPECIALIZATION ---------- */
+
+.isa-service,
+.isa-payment {
+    position: absolute;
+
+    width: 48px;
+    height: 48px;
+
+    border: 1px solid rgba(95, 208, 190, 0.55);
+    border-radius: 50%;
+
+    background: #091415;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    z-index: 4;
+}
+
+.isa-service span,
+.isa-payment span {
+    color: #5fd0be;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9px;
+}
+
+.isa-service small,
+.isa-payment small {
+    margin-top: 3px;
+
+    color: #53696a;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 5px;
+}
+
+/* Service ISA */
+
+.isa-service {
+    left: 305px;
+    top: 620px;
+}
+
+.electricity-card {
+    left: 55px;
+    top: 760px;
+}
+
+.water-card {
+    left: 305px;
+    top: 760px;
+}
+
+/* Payment ISA */
+
+.isa-payment {
+    left: 1040px;
+    top: 850px;
+}
+
+.card-payment-card {
+    left: 780px;
+    top: 930px;
+}
+
+.cash-payment-card {
+    left: 1030px;
+    top: 930px;
+}
+
+.upi-payment-card {
+    left: 1280px;
+    top: 930px;
+}
+
+/* ---------- SUBTYPE CARDS ---------- */
+
+.subtype-card {
+    width: 220px;
+}
+
+.subtype-card .eer-card-head strong {
+    color: #72c9bb;
+}
+
+/* ---------- LEGEND ---------- */
+
+.eer-legend {
+    position: absolute;
+    left: 45px;
+    bottom: 22px;
+
+    display: flex;
+    align-items: center;
+    gap: 24px;
+
+    padding: 10px 14px;
+
+    background: rgba(7, 12, 13, 0.94);
+    border: 1px solid rgba(178, 208, 212, 0.08);
+    border-radius: 5px;
+
+    color: #647677;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 8px;
+}
+
+.eer-legend span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.eer-legend i {
+    width: 11px;
+    height: 7px;
+    display: inline-block;
+}
+
+.legend-strong {
+    border: 1px solid #5fd0be;
+}
+
+.legend-weak {
+    border: 2px double #5fd0be;
+}
+
+.legend-multi {
+    border: 1px solid #5fd0be;
+    border-radius: 50%;
+}
+
+.legend-derived {
+    border-bottom: 1px dashed #8b9998;
+}
+
+.legend-isa {
+    border: 1px solid #5fd0be;
+    border-radius: 50%;
+}
+
+
+/* =========================================================
+   SCHEMA PAGE
+   ========================================================= */
+
+.database-page {
+    min-height: 100vh;
+    background: #070b0c;
+    color: #eaf1f1;
+}
+
+.database-header {
+    padding: 32px 38px 24px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.database-header h1 {
+    margin: 6px 0 4px;
+
+    color: #eaf1f1;
+
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+}
+
+.database-header p {
+    margin: 0;
+
+    color: #718284;
+
+    font-size: 13px;
+}
+
+.database-tabs {
+    display: flex;
+    gap: 5px;
+}
+
+.database-tabs button {
+    padding: 9px 15px;
+
+    border: 1px solid rgba(178, 208, 212, 0.1);
+    background: transparent;
+
+    color: #6f7e80;
+
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+
+    cursor: pointer;
+}
+
+.database-tabs button.active {
+    color: #5fd0be;
+    border-color: rgba(95, 208, 190, 0.35);
+    background: rgba(95, 208, 190, 0.04);
+}
+
+.schema-view {
+    overflow: auto;
+}
+
+/* Keep EER diagram usable on smaller screens */
+
+@media (max-width: 1400px) {
+    .eer-schema {
+        min-width: 1250px;
+    }
 }

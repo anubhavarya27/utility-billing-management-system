@@ -13,6 +13,8 @@
 .reports-header h1 {
     margin: 7px 0 8px;
     font-size: 38px;
+    font-weight: 500;
+    color: #eaf1f1 !important;
 }
 
 .reports-header p {

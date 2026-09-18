@@ -519,16 +519,16 @@
                     </div>
 
                     <div className="database-tabs">
-                        {["tables", "records", "schema"].map((tab) => (
-                            <button
-                                key={tab}
-                                className={activeTab === tab ? "active" : ""}
-                                onClick={() => setActiveTab(tab)}
-                            >
-                                {tab.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
+    {["tables", "records"].map((tab) => (
+        <button
+            key={tab}
+            className={activeTab === tab ? "active" : ""}
+            onClick={() => setActiveTab(tab)}
+        >
+            {tab.toUpperCase()}
+        </button>
+    ))}
+</div>
                 </div>
 
                 {activeTab === "schema" ? (
